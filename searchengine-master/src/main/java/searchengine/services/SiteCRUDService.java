@@ -56,11 +56,11 @@ public class SiteCRUDService implements CRUDService<SiteDto> {
         log.info("From site CRUD service. Status time = " + siteM.getStatusTime());
         log.info("From site CRUD service. Url = " + siteM.getUrl());
         log.info("From site CRUD service. Name = " + siteM.getName());
+        log.info("Repository size before creating site " + repository.findAll().size());
         repository.saveAndFlush(siteM);
         log.info("Site " + siteM.getUrl() + " was saved");
         log.info("Repository size after creating site " + repository.findAll().size());
-        log.info("Find by url inside site CRUD " + repository.findByUrl(siteM.getUrl()).getStatus());
-        log.info("Site CRUD Service. Site repo hash " + repository.hashCode());
+
     }
 
     @Override
