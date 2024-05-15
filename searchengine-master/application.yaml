@@ -1,0 +1,25 @@
+server:
+  port: 8080
+
+spring:
+  datasource:
+    username: root
+    password: PaSBM!@12
+    url: jdbc:mysql://localhost:3306/search_engine?useSSL=false&requireSSL=false&allowPublicKeyRetrieval=true
+  jpa:
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        use_sql_comments: true
+        dialect: org.hibernate.dialect.MySQL8Dialect
+    hibernate:
+      ddl-auto: update
+      show-sql: true
+
+indexing-settings:
+  sites:
+    - url:  http://www.playback.ru/
+      name: Playback
+    - url:  https://ipfran.ru/
+      name: Ipfran
