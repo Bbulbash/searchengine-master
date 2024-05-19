@@ -7,35 +7,29 @@ import searchengine.config.SitesList;
 import searchengine.config.Site;
 import searchengine.crawlerPages.SiteMapManager;
 import searchengine.model.SiteModel;
-import searchengine.repositories.SiteRepository;
-
 import java.util.List;
-
 @Service
 public class IndexingService {
     @Autowired
     private SitesList siteList;
     @Autowired
-    private SiteRepository repository;
+    private SiteCRUDService siteCRUDService;
     @Autowired
     private SiteMapManager siteMapManager;
-
     @Transactional
     private void deleteSitesData() {
         List<Site> sites = siteList.getSites();
         for (Site site : sites) {
-            SiteModel existingSite = repository.findByUrl(site.getUrl());
+            SiteModel existingSite = siteCRUDService.findByUrl(site.getUrl());
             if (existingSite != null) {
-                repository.delete(existingSite);
+                siteCRUDService.delete(existingSite.getId());
             }
         }
     }
-
     @Transactional
     public void createSitesMaps() throws Exception {
         siteMapManager.start();
     }
-
     @Transactional
     public boolean isIndexingActive() {
         return siteMapManager.isIndexingActive();

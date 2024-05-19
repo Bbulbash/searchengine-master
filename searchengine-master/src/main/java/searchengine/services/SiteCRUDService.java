@@ -22,9 +22,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class SiteCRUDService implements CRUDService<SiteDto> {
-    @Autowired
     private final SiteRepository repository;
-
     @Override
     public SiteDto getById(Long id) {
         return mapToDto(repository.findById(id.intValue()).get());
@@ -39,8 +37,11 @@ public class SiteCRUDService implements CRUDService<SiteDto> {
         return list.stream().map(it -> mapToDto(it)).collect(Collectors.toList());
     }
 
+    @Transactional
     @Override
     public void update(SiteDto item) {
+        SiteModel existingSiteM = repository.findById(item.getId().intValue())
+                .orElseThrow(() -> new EntityNotFoundException("From site CRUD service. Site not found"));
         SiteModel siteM = mapToModel(item);
         repository.saveAndFlush(siteM);
     }
@@ -63,6 +64,7 @@ public class SiteCRUDService implements CRUDService<SiteDto> {
 
     }
 
+    @Transactional
     @Override
     public void delete(Long id) {
         log.info("Delete site " + id.toString());
@@ -72,27 +74,44 @@ public class SiteCRUDService implements CRUDService<SiteDto> {
             throw new EntityNotFoundException("Site not found");
         }
     }
+    @Transactional
+    public SiteModel findByUrl(String url){
+        return repository.findByUrl(url);
+    }
+    @Transactional
+    public List<SiteModel> findAll(){
+        return repository.findAll();
+    }
+    @Transactional
+    public Boolean existsByUrl(String url){
+        return repository.existsByUrl(url);
+    }
+    @Transactional
+    public long count(){
+        return repository.count();
+    }
+    @Transactional
+    public List<SiteModel> findAllByStatus(String statusName){
+        return repository.findAllByStatus(statusName);
+    }
 
     public static SiteDto mapToDto(SiteModel siteModel) {
         SiteDto siteDto = new SiteDto();
+        siteDto.setId(siteModel.getId());
+        siteDto.setStatus(siteModel.getStatus().name());
+        siteDto.setStatusTime(siteModel.getStatusTime().toString());
+        siteDto.setLastError(siteModel.getLastError());
         siteDto.setName(siteModel.getName());
         siteDto.setUrl(siteModel.getUrl());
         return siteDto;
     }
-
-    /* public static SiteModel mapToModel(SiteDto siteDto) {
-         SiteModel siteM = new SiteModel();
-         siteM.setUrl(siteDto.getUrl());
-         siteM.setName(siteDto.getName());
-         return siteM;
-     }*/
     public static SiteModel mapToModel(SiteDto siteDto) {
         SiteModel siteM = new SiteModel();
-        siteM.setId(siteM.getId());
-        siteM.setUrl(siteM.getUrl());
+        siteM.setId(siteDto.getId());
+        siteM.setUrl(siteDto.getUrl());
         siteM.setName(siteDto.getName());
-        //siteM.setStatus(Status.valueOf(status));
-        //siteM.setStatusTime(LocalDateTime.now());
+        siteM.setStatus(Status.valueOf(siteDto.getStatus()));
+        siteM.setStatusTime(LocalDateTime.now());
         siteM.setLastError(siteDto.getLastError());
         return siteM;
     }

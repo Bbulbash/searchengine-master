@@ -29,14 +29,13 @@ public class SiteMapTask extends RecursiveTask<TaskResult> {
     private static final Set<String> visited = new HashSet<>();
     private PageCRUDService pageCRUDService;
     private SiteCRUDService siteCRUDService;
-    private SiteRepository siteRepository;
     public SiteMapTask(String url, int level, PageCRUDService pageCRUDService,
-                       SiteCRUDService siteCRUDService, SiteRepository siteRepository) {
+                       SiteCRUDService siteCRUDService) {
         this.url = url;
         this.level = level;
         this.pageCRUDService = pageCRUDService;
         this.siteCRUDService = siteCRUDService;
-        this.siteRepository = siteRepository;
+
     }
 
     @Override
@@ -60,7 +59,7 @@ public class SiteMapTask extends RecursiveTask<TaskResult> {
             }
             String pathFromRoot = urlAsURL.getPath();
             log.info("Path from url " + pathFromRoot);
-            String rootUrl = urlAsURL.getProtocol() + "://" + urlAsURL.getHost();
+            String rootUrl = urlAsURL.getProtocol() + "://" + urlAsURL.getHost() + "/";
             log.info("Root url " + rootUrl);
             Boolean isServiceEmpty = pageCRUDService.getAll().isEmpty();
             log.info(" Is page crud service is empty " + isServiceEmpty);
@@ -71,7 +70,7 @@ public class SiteMapTask extends RecursiveTask<TaskResult> {
             pageDto.setCode(response.statusCode());
             pageDto.setContent(doc.body().text());
             pageDto.setPath(pathFromRoot);
-            log.info("From site repository " + siteRepository.findAll().size());
+            log.info("From site repository " + siteCRUDService.findAll().size());
             log.info("Before saving page dto object " + pageDto.getPath());
             pageCRUDService.create(pageDto);
             log.info("After saving page dto object");
@@ -80,7 +79,7 @@ public class SiteMapTask extends RecursiveTask<TaskResult> {
             links.stream().forEach(link -> {
                 String absUrl = link.absUrl("href");
                 if (isValidUrl(url, absUrl)) {
-                    SiteMapTask task = new SiteMapTask(absUrl, level + 1, pageCRUDService, siteCRUDService, siteRepository);
+                    SiteMapTask task = new SiteMapTask(absUrl, level + 1, pageCRUDService, siteCRUDService);
                     tasks.add(task.fork());
                 }
             });

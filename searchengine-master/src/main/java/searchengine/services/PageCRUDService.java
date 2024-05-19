@@ -2,11 +2,12 @@ package searchengine.services;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import searchengine.dto.objects.PageDto;
 import searchengine.model.PageModel;
 import searchengine.model.SiteModel;
+import searchengine.model.Status;
 import searchengine.repositories.PageRepository;
 import searchengine.repositories.SiteRepository;
 
@@ -22,22 +23,18 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class PageCRUDService implements CRUDService<PageDto> {
-    @Autowired
-    private SiteRepository siteRepository;
-    @Autowired
-    private PageRepository pageRepository;
-    @Autowired
-    private SiteCRUDService siteCRUDService;
+    //@Autowired
+    private final PageRepository pageRepository;
+    //@Autowired
+    private final SiteCRUDService siteCRUDService;
 
+    @Transactional
     @Override
     public PageDto getById(Long id) {
-        return null;
-//        log.info("Get page by id " + id.toString());
-//        PageModel pageM = pageRepository.getById(Math.toIntExact(id))
-//                .orElseThrow(()-> new EntityNotFoundException("Page with id " + id + " not found."));
-//        return mapToDto(pageM);
+        return mapToDto(pageRepository.findById(id.intValue()).get());
     }
 
+    @Transactional
     @Override
     public Collection<PageDto> getAll() {
         List<PageModel> list = pageRepository.findAll();
@@ -47,14 +44,16 @@ public class PageCRUDService implements CRUDService<PageDto> {
         return list.stream().map(it -> mapToDto(it)).collect(Collectors.toList());
     }
 
+    @Transactional
     @Override
     public void create(PageDto item) {
         PageModel pageM = mapToModel(item);
         log.warn("From page CRUD Service. Page model get site url == " + pageM.getSite().getUrl());
-        log.warn("From page CRUD Service. Site repo size " + siteRepository.findAll().size() + ". Repo hash " + siteRepository.hashCode());
-        SiteModel siteM = siteRepository.findByUrl(pageM.getSite().getUrl());
+        log.warn("From page CRUD Service. Site repo size " + siteCRUDService.findAll().size());
+        SiteModel siteM = siteCRUDService.findByUrl(pageM.getSite().getUrl());
         if (siteM != null) {
             siteM.setStatusTime(LocalDateTime.now());
+            siteM.setStatus(Status.INDEXING);
             siteCRUDService.update(siteCRUDService.mapToDto(siteM));
         } else {
             log.error("Cannot find SiteModel with URL: " + pageM.getSite().getUrl());
@@ -63,9 +62,13 @@ public class PageCRUDService implements CRUDService<PageDto> {
         pageRepository.save(pageM);
     }
 
+    @Transactional
     @Override
     public void update(PageDto item) {
-
+        PageModel existingPageM= pageRepository.findById(item.getId().intValue())
+                .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("From page CRUD service. Page not found"));
+        PageModel pageModel = mapToModel(item);
+        pageRepository.saveAndFlush(pageModel);
     }
 
     @Override
@@ -82,13 +85,15 @@ public class PageCRUDService implements CRUDService<PageDto> {
 
         return pageDto;
     }
+
+    @Transactional
     public PageModel mapToModel(PageDto pageDto) {
         PageModel pageM = new PageModel();
-        SiteModel siteM = siteRepository.findByUrl(pageDto.getSite());
+        SiteModel siteM = siteCRUDService.findByUrl(pageDto.getSite());
 
         if (siteM == null) {
             log.error("SiteModel not found for URL: " + pageDto.getSite());
-            log.info("Site repo size " + siteRepository.findAll().size());
+            log.info("Site repo size " + siteCRUDService.findAll().size());
             throw new EntityNotFoundException("SiteModel not found for URL: " + pageDto.getSite());
         }
 

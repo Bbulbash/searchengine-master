@@ -18,7 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class PageModel {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    private int id;
+    private Long id;
     @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.REMOVE)
     private SiteModel site;
     @Column(name = "path", nullable = false, length = 255)

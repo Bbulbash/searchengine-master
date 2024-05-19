@@ -1,8 +1,5 @@
 package searchengine.services;
 
-import searchengine.dto.objects.SiteDto;
-import searchengine.model.Status;
-
 import java.util.Collection;
 
 public interface CRUDService<T> {

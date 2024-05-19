@@ -21,8 +21,6 @@ public class SiteMapManager {
     @Autowired
     private SitesList sitesList;
     @Autowired
-    private SiteRepository repository;
-    @Autowired
     private SiteCRUDService siteCRUDService;
     @Autowired
     private PageCRUDService pageCRUDService;
@@ -36,19 +34,20 @@ public class SiteMapManager {
         log.info("List of url size " + listUrl.size());
         for (Site site : listUrl) {
             String url = site.getUrl();
-            log.info("Is site exist by url " + repository.existsByUrl(url) + ".Url " + url);
-            if(!repository.existsByUrl(url)){
+            log.info("Is site exist by url " + siteCRUDService.existsByUrl(url) + ".Url " + url);
+            if(!siteCRUDService.existsByUrl(url)){
                 log.warn("Create after exist by url false. Url - " + url);
                 createSite(site);
                 log.warn("After creating site. Repository size " + siteCRUDService.getAll().size());
             }
             log.info("Url from site map manager " + url);
-            SiteMapTask task = new SiteMapTask(url, 0, pageCRUDService, siteCRUDService, repository);
-            pool.invoke(task);
+            SiteMapTask task = new SiteMapTask(url, 0, pageCRUDService, siteCRUDService);
+            //pool.invoke(task);
             TaskResult taskResult = pool.invoke(task);
+            //isIndexingActive = false;
             updateSiteStatus(url, taskResult);
         }
-        isIndexingActive = false;
+         isIndexingActive = false;
     }
     private void createSite(Site site){
         Long siteId = getNewSiteId();
@@ -62,14 +61,14 @@ public class SiteMapManager {
         siteCRUDService.create(siteDto);
     }
     private Long getNewSiteId(){
-        if(repository.count() == 0){
+        if(siteCRUDService.count() == 0){
             return 1L;
         }
-        return repository.count() + 1L;
+        return siteCRUDService.count() + 1L;
     }
 
     private void updateSiteStatus(String url, TaskResult taskResult) {
-        SiteModel model = repository.findByUrl(url);
+        SiteModel model = siteCRUDService.findByUrl(url);
         Boolean success = taskResult.getSuccess();
         String errorMessage = taskResult.getErrorMessage();
         if (success) {
@@ -87,7 +86,7 @@ public class SiteMapManager {
         isIndexingActive = false;
     }
     private void updateStatusAfterStop(){
-        List<SiteModel> listModel = (List<SiteModel>) repository.findAllByStatus(Status.INDEXING.name());
+        List<SiteModel> listModel = siteCRUDService.findAllByStatus(Status.INDEXING.name());
         for(SiteModel model : listModel){
             model.setStatus(Status.FAILED);
             model.setLastError("Индексация остановлена пользователем");

@@ -9,8 +9,9 @@ import java.util.List;
 @Repository
 public interface SiteRepository extends JpaRepository<SiteModel, Integer> {
     SiteModel findByUrl(String url);
-    SiteModel findAllByStatus(String status);
+    List<SiteModel> findAllByStatus(String status);
     Boolean existsByUrl(String url);
     List<SiteModel> findAll();
+
 
 }
