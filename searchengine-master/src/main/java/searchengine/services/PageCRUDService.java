@@ -3,6 +3,7 @@ package searchengine.services;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 import searchengine.dto.objects.PageDto;
 import searchengine.model.PageModel;
@@ -23,9 +24,9 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class PageCRUDService implements CRUDService<PageDto> {
-    //@Autowired
+
     private final PageRepository pageRepository;
-    //@Autowired
+
     private final SiteCRUDService siteCRUDService;
 
     @Transactional
@@ -59,7 +60,8 @@ public class PageCRUDService implements CRUDService<PageDto> {
             log.error("Cannot find SiteModel with URL: " + pageM.getSite().getUrl());
             throw new EntityNotFoundException("Site model not found for URL: " + pageM.getSite().getUrl());
         }
-        pageRepository.save(pageM);
+        pageRepository.saveAndFlush(pageM);
+
     }
 
     @Transactional
@@ -71,13 +73,20 @@ public class PageCRUDService implements CRUDService<PageDto> {
         pageRepository.saveAndFlush(pageModel);
     }
 
+    @Transactional
     @Override
     public void delete(Long id) {
-
+        log.info("Delete site " + id.toString());
+        if (pageRepository.existsById(id.intValue())) {
+            pageRepository.deleteById(id.intValue());
+        } else {
+            throw new jakarta.persistence.EntityNotFoundException("Page not found");
+        }
     }
 
     public PageDto mapToDto(PageModel page) {
         PageDto pageDto = new PageDto();
+        pageDto.setId(page.getId());
         pageDto.setCode(page.getCode());
         pageDto.setSite(page.getSite().getUrl());
         pageDto.setContent(page.getContent());

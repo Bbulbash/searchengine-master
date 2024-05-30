@@ -1,5 +1,7 @@
 package searchengine.crawlerPages;
 
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -9,14 +11,19 @@ import searchengine.dto.objects.SiteDto;
 import searchengine.model.SiteModel;
 import searchengine.model.Status;
 import searchengine.repositories.SiteRepository;
+import searchengine.services.IndexingService;
 import searchengine.services.PageCRUDService;
 import searchengine.services.SiteCRUDService;
 
+import javax.persistence.EntityNotFoundException;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ForkJoinPool;
+
 @Service
 @Slf4j
+@Setter
 public class SiteMapManager {
     @Autowired
     private SitesList sitesList;
@@ -24,7 +31,7 @@ public class SiteMapManager {
     private SiteCRUDService siteCRUDService;
     @Autowired
     private PageCRUDService pageCRUDService;
-    private volatile boolean isIndexingActive = false;
+    public volatile boolean isIndexingActive = false;
     ForkJoinPool pool = new ForkJoinPool();
 
     public void start() throws Exception {
@@ -34,22 +41,21 @@ public class SiteMapManager {
         log.info("List of url size " + listUrl.size());
         for (Site site : listUrl) {
             String url = site.getUrl();
-            log.info("Is site exist by url " + siteCRUDService.existsByUrl(url) + ".Url " + url);
-            if(!siteCRUDService.existsByUrl(url)){
+            log.info("Is site exist by url " + siteCRUDService.existsByUrl(url) + ". Url " + url);
+            if (!siteCRUDService.existsByUrl(url)) {
                 log.warn("Create after exist by url false. Url - " + url);
                 createSite(site);
                 log.warn("After creating site. Repository size " + siteCRUDService.getAll().size());
             }
             log.info("Url from site map manager " + url);
             SiteMapTask task = new SiteMapTask(url, 0, pageCRUDService, siteCRUDService);
-            //pool.invoke(task);
             TaskResult taskResult = pool.invoke(task);
-            //isIndexingActive = false;
             updateSiteStatus(url, taskResult);
         }
-         isIndexingActive = false;
+        isIndexingActive = false;
     }
-    private void createSite(Site site){
+
+    private void createSite(Site site) {
         Long siteId = getNewSiteId();
         SiteDto siteDto = new SiteDto();
         siteDto.setId(siteId);
@@ -60,8 +66,9 @@ public class SiteMapManager {
         log.info("Url of new site " + site.getUrl());
         siteCRUDService.create(siteDto);
     }
-    private Long getNewSiteId(){
-        if(siteCRUDService.count() == 0){
+
+    private Long getNewSiteId() {
+        if (siteCRUDService.count() == 0) {
             return 1L;
         }
         return siteCRUDService.count() + 1L;
@@ -80,21 +87,24 @@ public class SiteMapManager {
         model.setStatusTime(LocalDateTime.now());
         siteCRUDService.update(SiteCRUDService.mapToDto(model));
     }
-    public void stopIndexing(){
+
+    public void stopIndexing() {
         pool.shutdownNow();
         updateStatusAfterStop();
         isIndexingActive = false;
     }
-    private void updateStatusAfterStop(){
+
+    private void updateStatusAfterStop() {
         List<SiteModel> listModel = siteCRUDService.findAllByStatus(Status.INDEXING.name());
-        for(SiteModel model : listModel){
+        for (SiteModel model : listModel) {
             model.setStatus(Status.FAILED);
             model.setLastError("Индексация остановлена пользователем");
             model.setStatusTime(LocalDateTime.now());
             siteCRUDService.update(SiteCRUDService.mapToDto(model));
         }
     }
-    public boolean isIndexingActive(){
+
+    public boolean isIndexingActive() {
         return isIndexingActive;
     }
 }

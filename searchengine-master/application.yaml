@@ -23,3 +23,5 @@ indexing-settings:
       name: Playback
     - url:  https://ipfran.ru/
       name: Ipfran
+    - url: https://nikoartgallery.com/
+      name: Gallery

@@ -24,11 +24,17 @@ import java.util.stream.Collectors;
 public class SiteCRUDService implements CRUDService<SiteDto> {
     private final SiteRepository repository;
     @Override
+    @Transactional
     public SiteDto getById(Long id) {
         return mapToDto(repository.findById(id.intValue()).get());
     }
+    @Transactional
+    public SiteDto getByUrl(String url){
+        return mapToDto(repository.findByUrl(url));
+    }
 
     @Override
+    @Transactional
     public Collection<SiteDto> getAll() {
         List<SiteModel> list = repository.findAll();
         if (list.isEmpty()) {
@@ -40,8 +46,9 @@ public class SiteCRUDService implements CRUDService<SiteDto> {
     @Transactional
     @Override
     public void update(SiteDto item) {
+        log.info("Inside updating site in site CRUD");
         SiteModel existingSiteM = repository.findById(item.getId().intValue())
-                .orElseThrow(() -> new EntityNotFoundException("From site CRUD service. Site not found"));
+                .orElseThrow(() -> new EntityNotFoundException("From site CRUD service. Site with id " + item.getId() + " not found"));
         SiteModel siteM = mapToModel(item);
         repository.saveAndFlush(siteM);
     }
@@ -54,10 +61,6 @@ public class SiteCRUDService implements CRUDService<SiteDto> {
         log.info("From site CRUD servise. Site status = " + siteM.getStatus());
         siteM.setStatusTime(LocalDateTime.now());
         siteM.setUrl(siteDto.getUrl());
-        log.info("From site CRUD service. Status time = " + siteM.getStatusTime());
-        log.info("From site CRUD service. Url = " + siteM.getUrl());
-        log.info("From site CRUD service. Name = " + siteM.getName());
-        log.info("Repository size before creating site " + repository.findAll().size());
         repository.saveAndFlush(siteM);
         log.info("Site " + siteM.getUrl() + " was saved");
         log.info("Repository size after creating site " + repository.findAll().size());
@@ -122,9 +125,6 @@ public class SiteCRUDService implements CRUDService<SiteDto> {
         siteDto.setUrl(site.getUrl());
         return siteDto;
     }
-    /*public static SiteDto mapToDto(SiteModel siteM){
-        SiteDto siteDto = new SiteDto();
-        siteDto.setUrl();
-    }*/
+
 
 }

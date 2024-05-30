@@ -5,7 +5,6 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.springframework.beans.factory.annotation.Autowired;
 
 @Entity
 @Table(name = "Lemma")
@@ -13,7 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class Lemma {
+public class LemmaModel {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;

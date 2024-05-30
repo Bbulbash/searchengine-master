@@ -74,6 +74,7 @@ public class SiteMapTask extends RecursiveTask<TaskResult> {
             log.info("Before saving page dto object " + pageDto.getPath());
             pageCRUDService.create(pageDto);
             log.info("After saving page dto object");
+            log.info("Doc body text " + doc.body());
             List<ForkJoinTask<TaskResult>> tasks = new ArrayList<>();
             Elements links = doc.select("a[href]");
             links.stream().forEach(link -> {

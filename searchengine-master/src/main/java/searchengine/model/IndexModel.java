@@ -12,11 +12,10 @@ import lombok.Setter;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class Index {
+public class IndexModel {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
-    //@Column(name = "page_id", nullable = false)
     @OneToOne(fetch = FetchType.LAZY)
     private PageModel page;
     @Column(name = "lemma_id", nullable = false)

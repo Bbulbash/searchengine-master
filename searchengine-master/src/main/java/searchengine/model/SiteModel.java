@@ -6,7 +6,6 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.springframework.beans.factory.annotation.Autowired;
 
 
 import java.time.LocalDateTime;
@@ -34,5 +33,5 @@ public class SiteModel {
     @Column( name = "name", nullable = false, length = 255)
     private String name;
     @OneToMany(mappedBy = "site", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-    private List<Lemma> lemmas;
+    private List<LemmaModel> lemmaModels;
 }

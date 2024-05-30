@@ -5,9 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import searchengine.dto.statistics.StatisticsResponse;
 import searchengine.services.IndexingService;
 import searchengine.services.StatisticsService;
@@ -34,13 +32,12 @@ public class ApiController {
     }
 
     @SneakyThrows
-    //@GetMapping("/api/startIndexing")//Метод запуска индексации
     @GetMapping("/startIndexing")
     public ResponseEntity<?> startIndexing() {
-        indexingService.createSitesMaps();
         boolean isIndexingActive = indexingService.isIndexingActive();
         log.info("Is indexing active " + isIndexingActive);
         if (!isIndexingActive) {
+            indexingService.createSitesMaps();
             return new ResponseEntity<>(Map.of("result", true), HttpStatus.OK);
         } else {
             return new ResponseEntity<>
@@ -58,6 +55,21 @@ public class ApiController {
         } else {
             return new ResponseEntity<>
                     (Map.of("result", false, "error", "Индексация не запущена"), HttpStatus.CONFLICT);
+        }
+    }
+
+    @SneakyThrows
+    @PostMapping("/indexPage")
+    public ResponseEntity<?> indexPage(@RequestParam(name = "url") String url) {// Если индексация уже запущена - выкидывать ошибку
+        log.info("URL inside API " + url);
+        boolean isAllowIndexingPage = indexingService.isAllowIndexingPage(url);
+        if (isAllowIndexingPage) {
+            indexingService.startIndexingPage(url);
+            return new ResponseEntity<>(Map.of("result", true), HttpStatus.OK);
+        } else {
+            return new ResponseEntity<>
+                    (Map.of("result", false, "error", "Данная страница находится за пределами сайтов,\n" +
+                            "указанных в конфигурационном файле"), HttpStatus.CONFLICT);
         }
     }
 

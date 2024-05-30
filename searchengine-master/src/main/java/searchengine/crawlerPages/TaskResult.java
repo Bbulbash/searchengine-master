@@ -10,5 +10,4 @@ import lombok.Setter;
 public class TaskResult {
     private final Boolean success;
     private final String errorMessage;
-
 }
