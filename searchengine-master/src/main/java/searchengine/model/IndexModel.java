@@ -16,7 +16,7 @@ public class IndexModel {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
-    @OneToOne(fetch = FetchType.LAZY)
+    @OneToOne(fetch = FetchType.EAGER)
     private PageModel page;
     @Column(name = "lemma_id", nullable = false)
     private int lemmaId;

@@ -66,11 +66,11 @@ public class PageIndexer {
                 lemmizer.createLemmasAndIndex(pageDto);
                 log.info("After saving page dto object");
                 siteMapManager.setIndexingActive(false);
-                updateSiteStatus(hostName, errorMessage, Status.INDEXED);
+                //updateSiteStatus(hostName, errorMessage, Status.INDEXED);
             } catch (Exception e) {
                 success = false;
                 errorMessage = e.getMessage();
-                updateSiteStatus(hostName, errorMessage, Status.FAILED);
+                //updateSiteStatus(hostName, errorMessage, Status.FAILED);
                 System.err.println("Ошбика при обработке URL: " + hostName + " " + e.getMessage());
             }
         }
@@ -143,11 +143,11 @@ public class PageIndexer {
         return urlAsURL;
     }
 
-    private Long getPageId() {
-        Boolean isServiceEmpty = pageCRUDService.getAll().isEmpty();
-        log.info(" Is page crud service is empty " + isServiceEmpty);
-        return (isServiceEmpty) ? 1L : Long.parseLong(String.valueOf(pageCRUDService.getAll().size())) + 1L;
-    }
+//    private Long getPageId() {
+//        Boolean isServiceEmpty = pageCRUDService.getAll().isEmpty();
+//        log.info(" Is page crud service is empty " + isServiceEmpty);
+//        return (isServiceEmpty) ? 1L : Long.parseLong(String.valueOf(pageCRUDService.getAll().size())) + 1L;
+//    }
 
     private Connection.Response getResponse(String url) throws IOException {
         Connection.Response response = null;
@@ -172,7 +172,6 @@ public class PageIndexer {
     private PageDto initializationPageDto(String url) throws IOException {
         URL urlAsUrl = getUrl(url);
         PageDto pageDto = new PageDto();
-        pageDto.setId(getPageId());
         pageDto.setSite(getHostName(urlAsUrl));//Корневой url
         pageDto.setCode(getResponse(url).statusCode());
         pageDto.setContent(getDocument(url).body().text());
@@ -181,17 +180,14 @@ public class PageIndexer {
         return pageDto;
     }
 
-    private void updateSiteStatus(String url, String errorMessage, Status status) {
-        log.info("Repository size from update site status page indexer " + siteCRUDService.getAll().size());
-        log.info("From update status. Url = " + url);
+private void updateSiteStatus(String url, String errorMessage, Status status) {
+    SiteDto dto = siteCRUDService.getByUrl(url);
+    dto.setStatus(status.name());
+    dto.setLastError(errorMessage);
+    dto.setStatusTime(LocalDateTime.now().toString());
+    siteCRUDService.update(dto);
+}
 
-        SiteDto dto = siteCRUDService.getByUrl(url);
-        log.info("From update site status. Is model empty " + dto.getUrl());
-        dto.setStatus(status.name());
-        dto.setLastError(errorMessage);
-        dto.setStatusTime(LocalDateTime.now().toString());
-        siteCRUDService.update(dto);
-    }
 
     private void createSite(String url) {
         listOfSite = sitesList.getSites();

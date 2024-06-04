@@ -32,6 +32,6 @@ public class SiteModel {
     private String url;
     @Column( name = "name", nullable = false, length = 255)
     private String name;
-    @OneToMany(mappedBy = "site", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "site", fetch = FetchType.EAGER, cascade = CascadeType.ALL)
     private List<LemmaModel> lemmaModels;
 }

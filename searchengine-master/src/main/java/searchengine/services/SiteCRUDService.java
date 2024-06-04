@@ -13,15 +13,17 @@ import searchengine.model.Status;
 import searchengine.repositories.SiteRepository;
 
 import java.time.LocalDateTime;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
+import javax.persistence.PersistenceContext;
+import javax.persistence.EntityManager;
+
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class SiteCRUDService implements CRUDService<SiteDto> {
+
     private final SiteRepository repository;
     @Override
     @Transactional
@@ -43,14 +45,32 @@ public class SiteCRUDService implements CRUDService<SiteDto> {
         return list.stream().map(it -> mapToDto(it)).collect(Collectors.toList());
     }
 
-    @Transactional
+    @Transactional(rollbackFor = {RuntimeException.class, EntityNotFoundException.class, Exception.class})
     @Override
     public void update(SiteDto item) {
-        log.info("Inside updating site in site CRUD");
-        SiteModel existingSiteM = repository.findById(item.getId().intValue())
-                .orElseThrow(() -> new EntityNotFoundException("From site CRUD service. Site with id " + item.getId() + " not found"));
-        SiteModel siteM = mapToModel(item);
-        repository.saveAndFlush(siteM);
+        log.info("Inside updating site in site CRUD " + repository.findAll().stream().filter(it -> it.getId() == 52).toList().size());
+        //SiteModel existingSiteM = repository.findById(item.getId().intValue()).get();
+         //       .orElseThrow(() -> new EntityNotFoundException("From site CRUD service. Site with id " + item.getId() + " not found"));
+        //Optional<SiteModel> existingSiteM = repository.findAll().stream().filter(it -> it.getId().equals(it.getId())).findFirst();
+        //SiteModel model = setNewValueToEntity(item, existingSiteM.get());
+        //log.info("Existing site model " + existingSiteM.getName());
+        Optional<SiteModel> optionalSiteModel = repository.findById(Math.toIntExact(item.getId()));
+        if(optionalSiteModel.isPresent()){
+            SiteModel existingSiteM = optionalSiteModel.get();
+            try {
+                log.info("Existing site model " + existingSiteM.getName());
+                existingSiteM.setLastError(item.getLastError());
+                existingSiteM.setStatusTime(LocalDateTime.parse(item.getStatusTime()));
+                existingSiteM.setStatus(Status.valueOf(item.getStatus()));
+                repository.saveAndFlush(existingSiteM);
+            }catch (Exception ex){
+                log.warn("Exception in update site " + ex.getMessage());
+            }
+        }else{
+            log.info("Site model with id " + item.getId() + " not found");
+            throw new EntityNotFoundException("Site model with id " + item.getId() + " not found");
+        }
+
     }
 
     @Transactional
@@ -124,6 +144,12 @@ public class SiteCRUDService implements CRUDService<SiteDto> {
         siteDto.setName(site.getName());
         siteDto.setUrl(site.getUrl());
         return siteDto;
+    }
+    private static SiteModel setNewValueToEntity(SiteDto dto, SiteModel model){
+        model.setStatus(Status.valueOf(dto.getStatus()));
+        model.setStatusTime(LocalDateTime.parse(dto.getStatusTime()));
+        model.setLastError(dto.getLastError());
+        return model;
     }
 
 

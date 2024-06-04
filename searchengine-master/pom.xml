@@ -93,6 +93,12 @@
             <artifactId>russian</artifactId>
             <version>1.5</version>
         </dependency>
+        <dependency>
+            <groupId>javax.persistence</groupId>
+            <artifactId>javax.persistence-api</artifactId>
+            <version>2.2</version>
+        </dependency>
+
     </dependencies>
 
 

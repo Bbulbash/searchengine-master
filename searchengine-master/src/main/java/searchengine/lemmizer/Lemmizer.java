@@ -50,15 +50,11 @@ public class Lemmizer {
 
     }
     private void createIndex(int rankValue, PageDto pageDto, LemmaDto limmaDto){
-        Boolean isServiceEmpty = indexCRUDService.isServiceEmpty();
-        Long indexId = (isServiceEmpty) ? 1L : indexCRUDService.getAll().stream().count() + 1L;
-
         IndexDto dto = new IndexDto();
-        dto.setId(indexId);
         dto.setLemmaId(Math.toIntExact(limmaDto.getId()));
-        dto.setPageId(pageDto.getId());
+        dto.setPageId(pageDto.getId());// Почему-то pageId null
         dto.setRankValue(rankValue);
-        indexCRUDService.create(dto);
+        indexCRUDService.create(dto);// Посмотреть че там с pageId
     }
 
     private LemmaDto createLemma(String siteUrl, String lemmaName) {
