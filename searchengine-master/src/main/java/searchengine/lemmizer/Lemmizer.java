@@ -29,30 +29,30 @@ public class Lemmizer {
     private static final String[] particleNames = new String[]{"МЕЖД", "ПРЕДЛ", "СОЮЗ"};
 
     public void createLemmasAndIndex(PageDto pageDto) throws IOException {
+        Long pageId = pageDto.getId();
+        log.info("Page id = " + pageId);
         log.info("Page dto path " + pageDto.getPath());
         Map<String, Integer> lemmaCountMap = getLemmasList(pageDto.getContent());
         log.info("Lemma count map " + lemmaCountMap.isEmpty());
         log.info("siteCRUDService.getByUrl(pageDto.getSite()).getId() " + siteCRUDService.getByUrl(pageDto.getSite()).getId());
         for (String lemmaName : lemmaCountMap.keySet()) {
             LemmaDto lemmaDto = lemmaCRUDService
-                    .getByLemmaAndSiteId(lemmaName, siteCRUDService.getByUrl(pageDto.getSite()).getId());// Тут  ошибка
+                    .getByLemmaAndSiteId(lemmaName, siteCRUDService.getByUrl(pageDto.getSite()).getId());
             if (lemmaDto == null) {
                 log.info("Creating lemma ");
                 lemmaDto = createLemma(pageDto.getSite(), lemmaName);
-
             }else{
                 lemmaDto.setFrequency(lemmaDto.getFrequency() + 1);
                 lemmaCRUDService.update(lemmaDto);
             }
-            createIndex(lemmaCountMap.get(lemmaName), pageDto, lemmaDto);//возвращается lemmaDto = null из-за этого выдается ошибка
-
+            createIndex(lemmaCountMap.get(lemmaName), pageId, lemmaDto);//возвращается lemmaDto = null из-за этого выдается ошибка
         }
 
     }
-    private void createIndex(int rankValue, PageDto pageDto, LemmaDto limmaDto){
+    private void createIndex(int rankValue, Long pageId, LemmaDto limmaDto){
         IndexDto dto = new IndexDto();
         dto.setLemmaId(Math.toIntExact(limmaDto.getId()));
-        dto.setPageId(pageDto.getId());// Почему-то pageId null
+        dto.setPageId(pageId);// Почему-то pageId null
         dto.setRankValue(rankValue);
         indexCRUDService.create(dto);// Посмотреть че там с pageId
     }

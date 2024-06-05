@@ -54,6 +54,18 @@ public class PageCRUDService implements CRUDService<PageDto> {
         }
         return list.stream().map(it -> mapToDto(it)).collect(Collectors.toList());
     }
+    @Transactional
+    public PageDto getByPathAndSitePath(String pagePath, String sitePath){
+        try {
+            return mapToDto(pageRepository.findByPathAndSiteUrl(pagePath, sitePath));
+        } catch (EntityNotFoundException ex) {
+            log.warn("Page with path {} not found: {}", pagePath, ex.getMessage());
+            throw ex;  // или ваше собственное исключение
+        } catch (Exception ex) {
+            log.error("An unexpected error occurred while finding the page by path: {}", pagePath, ex);
+            throw new RuntimeException("An unexpected error occurred while finding the page by path: " + pagePath, ex);
+        }
+    }
 
     @Transactional
     @Override

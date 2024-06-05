@@ -5,5 +5,5 @@ import org.springframework.stereotype.Repository;
 import searchengine.model.PageModel;
 @Repository
 public interface PageRepository extends JpaRepository<PageModel, Integer> {
-
+    PageModel findByPathAndSiteUrl(String url, String sitePath);
 }

@@ -63,7 +63,8 @@ public class PageIndexer {
                 log.info("Before initialization pageDto");
                 PageDto pageDto = initializationPageDto(url);
                 pageCRUDService.create(pageDto);
-                lemmizer.createLemmasAndIndex(pageDto);
+                PageDto newPage = pageCRUDService.getByPathAndSitePath(pageDto.getPath(), pageDto.getSite());
+                lemmizer.createLemmasAndIndex(newPage);
                 log.info("After saving page dto object");
                 siteMapManager.setIndexingActive(false);
                 //updateSiteStatus(hostName, errorMessage, Status.INDEXED);
@@ -71,7 +72,10 @@ public class PageIndexer {
                 success = false;
                 errorMessage = e.getMessage();
                 //updateSiteStatus(hostName, errorMessage, Status.FAILED);
-                System.err.println("Ошбика при обработке URL: " + hostName + " " + e.getMessage());
+                System.out.println("-----------1--------");
+                System.out.println("Ошбика при обработке URL: " + hostName + " " + e.getMessage());
+                System.out.println("-----------------------");
+                System.out.println(e.getStackTrace());
             }
         }
     }
