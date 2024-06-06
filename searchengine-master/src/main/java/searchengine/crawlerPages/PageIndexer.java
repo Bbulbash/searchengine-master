@@ -64,7 +64,7 @@ public class PageIndexer {
                 PageDto pageDto = initializationPageDto(url);
                 pageCRUDService.create(pageDto);
                 PageDto newPage = pageCRUDService.getByPathAndSitePath(pageDto.getPath(), pageDto.getSite());
-                lemmizer.createLemmasAndIndex(newPage);
+                lemmizer.createLemmasAndIndex(newPage);// Ошибка отсюда
                 log.info("After saving page dto object");
                 siteMapManager.setIndexingActive(false);
                 //updateSiteStatus(hostName, errorMessage, Status.INDEXED);

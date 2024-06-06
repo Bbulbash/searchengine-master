@@ -16,7 +16,8 @@ public class IndexModel {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
-    @OneToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.EAGER)//Ошибка из-за onetoone
+    @JoinColumn(name = "page_id")
     private PageModel page;
     @Column(name = "lemma_id", nullable = false)
     private int lemmaId;

@@ -39,7 +39,7 @@ public class LemmaCRUDService implements CRUDService<LemmaDto> {
 
         Optional<LemmaModel> modelO = lemmaRepository
                 .findAll().stream().filter(it -> it.getLemma().equals(lemma) && it.getSite().getId().equals(siteId)).findFirst();
-        if(!modelO.isPresent()){
+        if(modelO.isPresent()){
             return mapToDto(modelO.get());
         }
         return null;

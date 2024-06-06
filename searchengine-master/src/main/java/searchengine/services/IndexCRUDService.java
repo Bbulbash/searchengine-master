@@ -41,10 +41,10 @@ public class IndexCRUDService implements CRUDService<IndexDto> {
     @Override
     @Transactional
     public void create(IndexDto item) {
-        IndexModel indexM = mapToModel(item);// pageId здесь пустой
-        Long indexId = (indexRepository.count() == 0) ? 1L : indexRepository.count() + 1L;
-        indexM.setId(indexId);
-        indexRepository.saveAndFlush(indexM);
+            IndexModel indexM = mapToModel(item);
+            Long indexId = (indexRepository.count() == 0) ? 1L : indexRepository.count() + 1L;
+            indexM.setId(indexId);
+            indexRepository.save(indexM);
     }
 
     @Override
@@ -66,7 +66,7 @@ public class IndexCRUDService implements CRUDService<IndexDto> {
         }
     }
 
-    @Transactional
+    //@Transactional
     private IndexModel mapToModel(IndexDto dto) {
         IndexModel model = new IndexModel();
         log.info("Index page id from index " + dto.getPageId());

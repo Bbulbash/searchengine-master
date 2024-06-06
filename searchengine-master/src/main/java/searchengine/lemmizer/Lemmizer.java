@@ -37,7 +37,7 @@ public class Lemmizer {
         log.info("siteCRUDService.getByUrl(pageDto.getSite()).getId() " + siteCRUDService.getByUrl(pageDto.getSite()).getId());
         for (String lemmaName : lemmaCountMap.keySet()) {
             LemmaDto lemmaDto = lemmaCRUDService
-                    .getByLemmaAndSiteId(lemmaName, siteCRUDService.getByUrl(pageDto.getSite()).getId());
+                    .getByLemmaAndSiteId(lemmaName, siteCRUDService.getByUrl(pageDto.getSite()).getId());// Что-то ломается здесь
             if (lemmaDto == null) {
                 log.info("Creating lemma ");
                 lemmaDto = createLemma(pageDto.getSite(), lemmaName);
