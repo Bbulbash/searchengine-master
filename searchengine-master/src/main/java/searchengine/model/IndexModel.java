@@ -13,14 +13,13 @@ import lombok.Setter;
 @AllArgsConstructor
 @NoArgsConstructor
 public class IndexModel {
-    @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    private Long id;
-    @ManyToOne(fetch = FetchType.EAGER)//Ошибка из-за onetoone
-    @JoinColumn(name = "page_id")
+
+    @EmbeddedId
+    private IndexKey id;
+    @ManyToOne(fetch = FetchType.EAGER, cascade = CascadeType.ALL)//Ошибка из-за onetoone
+    @JoinColumn(name = "page_id", nullable = false)
+    @MapsId("pageId")
     private PageModel page;
-    @Column(name = "lemma_id", nullable = false)
-    private int lemmaId;
     @Column(name = "rank_value", nullable = false)
     private float rankValue;
 }

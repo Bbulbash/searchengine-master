@@ -10,7 +10,6 @@ import lombok.Setter;
 @Setter
 @AllArgsConstructor
 public class IndexDto {
-    private Long id;
     private Long pageId;
     private int lemmaId;
     private float rankValue;

@@ -25,7 +25,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class LemmaCRUDService implements CRUDService<LemmaDto> {
     private final LemmaRepository lemmaRepository;
-    private final PageRepository pageRepository;
+
     private final SiteCRUDService siteCRUDService;
 
     @Override
