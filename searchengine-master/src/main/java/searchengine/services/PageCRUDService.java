@@ -78,14 +78,13 @@ public class PageCRUDService implements CRUDService<PageDto> {
     @Transactional
     @Override
     public void create(PageDto item) {
-        //Long pageId = pageRepository.count() == 0 ? 1l : pageRepository.count() + 1L;
         PageModel pageM = mapToModel(item);
-        //pageM.setId(pageId);
+
         log.warn("From page CRUD Service. Page model get site url == " + pageM.getSite().getUrl());
         log.warn("From page CRUD Service. Site repo size " + siteCRUDService.findAll().size());
         SiteModel siteM = siteCRUDService.findByUrl(pageM.getSite().getUrl());
         PageModel model = pageRepository.findByPathAndSiteUrl(pageM.getPath(), siteM.getUrl());
-        if (model.getId() != null) {
+        if (model != null) {
             delete(model.getId());
         }
 
@@ -121,9 +120,8 @@ public class PageCRUDService implements CRUDService<PageDto> {
             List<IndexDto> indexes = indexCRUDService.getAll().stream().filter(it -> it.getPageId() == id).toList();
             log.info("Is indexes present " + indexes.size());
             for (IndexDto dto : indexes.stream().toList()) {
-                //IndexKey key =
-                Long indexId = Long.parseLong(dto.getPageId().toString().concat(String.valueOf(dto.getLemmaId())));
-                indexCRUDService.delete(indexId);
+                IndexKey key = new IndexKey(dto.getPageId(), dto.getLemmaId());
+                indexCRUDService.delete(key);
             }
             pageRepository.deleteById(id.intValue());
         } else {
@@ -159,5 +157,14 @@ public class PageCRUDService implements CRUDService<PageDto> {
         pageM.setContent(pageDto.getContent());
 
         return pageM;
+    }
+    @Transactional
+    public void deleteBySiteId(Long id){
+        List<PageModel> models = pageRepository.findAllBySiteId(id);
+        for(PageModel page : models){
+            indexCRUDService.deleteByPageId(page.getId());
+            pageRepository.delete(page);
+        }
+
     }
 }

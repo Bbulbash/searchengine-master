@@ -22,29 +22,25 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class IndexCRUDService implements CRUDService<IndexDto> {
+public class IndexCRUDService{
     private final IndexRepository indexRepository;
     private final SiteCRUDService siteCRUDService;
     @Autowired
     private PageCRUDService pageCRUDService;
 
-    @Override
+//    @Override
     @Transactional
-    public IndexDto getById(Long id) {
-        return null;//mapToDto(indexRepository.getReferenceById(Math.toIntExact(id)));
+    public IndexDto getById(IndexKey key) {
+        IndexModel model = indexRepository.findByKey(key)
+                .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("From index CRUD service. Index not found"));
+        return mapToDto(model);//mapToDto(indexRepository.getReferenceById(Math.toIntExact(id)));
     }
     /* @Transactional
     public IndexDto getByKey(IndexKey key){
         return indexRepository.
     }*/
 
-    @Override
-    @Transactional
-    public IndexDto getById(Long id) {
-        return null;
-    }
-
-    @Override
+ //   @Override
     @Transactional
     public Collection<IndexDto> getAll() {
         List<IndexModel> list = indexRepository.findAll();
@@ -54,14 +50,14 @@ public class IndexCRUDService implements CRUDService<IndexDto> {
         return list.stream().map(it -> mapToDto(it)).collect(Collectors.toList());
     }
 
-    @Override
+   // @Override
     @Transactional
     public void create(IndexDto item) {
         IndexModel indexM = mapToModel(item);
         indexRepository.save(indexM);
     }
 
-    @Override
+    //@Override
     @Transactional
     public void update(IndexDto item) {
         indexRepository.findById(new IndexKey(item.getPageId(), item.getLemmaId()))
@@ -70,15 +66,12 @@ public class IndexCRUDService implements CRUDService<IndexDto> {
         indexRepository.saveAndFlush(indexModel);
     }
 
-    @Override
-    public void delete(BaseId id) {
 
-    }
 
-    @Override
+    //@Override
     @Transactional
     public void delete(IndexKey key) {
-        if (indexRepository.existByKey(key)) indexRepository.delete(key);
+        if (indexRepository.existsByKey(key.getPageId(), Long.parseLong(String.valueOf(key.getLemmaId())))) indexRepository.deleteByIndexKey(key.getPageId(), Long.parseLong(String.valueOf(key.getLemmaId())));
         else throw new jakarta.persistence.EntityNotFoundException("Index not found");
     }
 
@@ -93,7 +86,7 @@ public class IndexCRUDService implements CRUDService<IndexDto> {
             log.info("Page repo size " + siteCRUDService.findAll().size());
             throw new EntityNotFoundException("PageModel not found for ID: " + dto.getPageId());
         }
-        model.setId(key);
+        model.setKey(key);
         model.setPage(pageM);
         model.setRankValue(dto.getRankValue());
         return model;
@@ -101,7 +94,7 @@ public class IndexCRUDService implements CRUDService<IndexDto> {
 
     private IndexDto mapToDto(IndexModel model) {
         IndexDto dto = new IndexDto();
-        dto.setLemmaId(model.getId().getLemmaId());
+        dto.setLemmaId(model.getKey().getLemmaId());
         dto.setPageId(model.getPage().getId());
         dto.setRankValue(model.getRankValue());
         return dto;
@@ -115,5 +108,13 @@ public class IndexCRUDService implements CRUDService<IndexDto> {
     @Transactional
     public Optional<IndexModel> findByPageId(Long pageId) {
         return Optional.ofNullable(indexRepository.findByPageId(pageId).orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("From index CRUD service. Index not found")));
+    }
+    @Transactional
+    public void deleteByPageId(Long pageId){
+        List<IndexModel> models = indexRepository.findAllByPageId(pageId);
+        for(IndexModel model : models){
+            log.info("Index model before delete " + model.getKey());
+            indexRepository.delete(model);
+        }
     }
 }
