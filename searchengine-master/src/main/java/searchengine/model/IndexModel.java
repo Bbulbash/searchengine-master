@@ -12,6 +12,7 @@ import lombok.Setter;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
+
 //@IdClass(IndexKey.class)
 public class IndexModel {
 
