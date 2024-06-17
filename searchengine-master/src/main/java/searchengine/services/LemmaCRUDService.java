@@ -14,10 +14,7 @@ import searchengine.repositories.PageRepository;
 
 import javax.persistence.EntityNotFoundException;
 import java.time.LocalDateTime;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -87,6 +84,9 @@ public class LemmaCRUDService implements CRUDService<LemmaDto> {
     @Transactional
     public void delete(Long id) {
         log.info("Delete lemma " + id.toString());
+        log.info("Lemma site " + lemmaRepository.findAll()
+                .stream().filter(it -> it.getId().equals(id))
+                .collect(Collectors.toList()).stream().findFirst().get().getSite().getName());
         if (lemmaRepository.existsById(id.intValue())) {
             lemmaRepository.deleteById(id.intValue());
         } else {
@@ -123,5 +123,14 @@ public class LemmaCRUDService implements CRUDService<LemmaDto> {
     public Boolean isServiceEmpty(){
         return lemmaRepository.count() == 0;
     }
+   /* @Transactional
+    public List<LemmaModel> getLemmasByPage(Long pageId){
+        if (lemmaRepository.existsByPageId(pageId)){
+            return getLemmasByPage(pageId);
+        }else{
+            return new ArrayList<>();
+        }
+
+    }*/
 
 }

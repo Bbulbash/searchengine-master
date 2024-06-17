@@ -54,7 +54,7 @@ public class Lemmizer {
         dto.setLemmaId(Math.toIntExact(limmaDto.getId()));
         dto.setPageId(pageId);// Почему-то pageId null
         dto.setRankValue(rankValue);
-        indexCRUDService.create(dto);// Посмотреть че там с pageId
+        indexCRUDService.create(dto);// Появляется записть о создании второй страницы
     }
 
     private LemmaDto createLemma(String siteUrl, String lemmaName) {

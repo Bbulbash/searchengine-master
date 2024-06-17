@@ -63,8 +63,8 @@ public class PageIndexer {
                 log.info("Before initialization pageDto");
                 PageDto pageDto = initializationPageDto(url);
                 pageCRUDService.create(pageDto);
-                PageDto newPage = pageCRUDService.getByPathAndSitePath(pageDto.getPath(), pageDto.getSite());
-                lemmizer.createLemmasAndIndex(newPage);// Ошибка отсюда
+                PageDto newPage = pageCRUDService.getByPathAndSitePath(pageDto.getPath(), pageDto.getSite());// Новая ошибка тут
+                lemmizer.createLemmasAndIndex(newPage);// Множественное создание страниц отсюда
                 log.info("After saving page dto object");
                 siteMapManager.setIndexingActive(false);
                 //updateSiteStatus(hostName, errorMessage, Status.INDEXED);
@@ -146,12 +146,6 @@ public class PageIndexer {
         }
         return urlAsURL;
     }
-
-//    private Long getPageId() {
-//        Boolean isServiceEmpty = pageCRUDService.getAll().isEmpty();
-//        log.info(" Is page crud service is empty " + isServiceEmpty);
-//        return (isServiceEmpty) ? 1L : Long.parseLong(String.valueOf(pageCRUDService.getAll().size())) + 1L;
-//    }
 
     private Connection.Response getResponse(String url) throws IOException {
         Connection.Response response = null;

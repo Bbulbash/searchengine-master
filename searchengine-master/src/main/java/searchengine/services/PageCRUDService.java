@@ -65,12 +65,13 @@ public class PageCRUDService implements CRUDService<PageDto> {
     @Transactional
     public PageDto getByPathAndSitePath(String pagePath, String sitePath) {
         try {
-            return mapToDto(pageRepository.findByPathAndSiteUrl(pagePath, sitePath));
+            log.info("Find page by path and site url size " + pageRepository.findAll().size());
+            return mapToDto(pageRepository.findByPathAndSiteUrl(pagePath, sitePath).stream().findFirst().get());
         } catch (EntityNotFoundException ex) {
             log.warn("Page with path {} not found: {}", pagePath, ex.getMessage());
-            throw ex;  // или ваше собственное исключение
+            throw ex;
         } catch (Exception ex) {
-            log.error("An unexpected error occurred while finding the page by path: {}", pagePath, ex);
+            log.error("An unexpected error occurred while finding the page by path: {}", pagePath, ex.fillInStackTrace());
             throw new RuntimeException("An unexpected error occurred while finding the page by path: " + pagePath, ex);
         }
     }
@@ -81,11 +82,12 @@ public class PageCRUDService implements CRUDService<PageDto> {
         PageModel pageM = mapToModel(item);
 
         log.warn("From page CRUD Service. Page model get site url == " + pageM.getSite().getUrl());
-        log.warn("From page CRUD Service. Site repo size " + siteCRUDService.findAll().size());
+        log.warn("From page CRUD Service.1 Site repo size " + siteCRUDService.findAll().size());
         SiteModel siteM = siteCRUDService.findByUrl(pageM.getSite().getUrl());
-        PageModel model = pageRepository.findByPathAndSiteUrl(pageM.getPath(), siteM.getUrl());
-        if (model != null) {
-            delete(model.getId());
+        Optional<PageModel> optionalModel = pageRepository.findByPathAndSiteUrl(pageM.getPath(), siteM.getUrl()).stream().findFirst();
+
+        if (optionalModel.isPresent()) {
+            delete(optionalModel.get().getId());
         }
 
         if (siteM != null) {
@@ -107,7 +109,7 @@ public class PageCRUDService implements CRUDService<PageDto> {
         PageModel existingPageM = pageRepository.findById(item.getId().intValue())
                 .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("From page CRUD service. Page not found"));
         PageModel pageModel = mapToModel(item);
-        pageRepository.saveAndFlush(pageModel);
+        pageRepository.save(pageModel);
     }
 
     @Transactional
@@ -123,6 +125,7 @@ public class PageCRUDService implements CRUDService<PageDto> {
                 IndexKey key = new IndexKey(dto.getPageId(), dto.getLemmaId());
                 indexCRUDService.delete(key);
             }
+            //
             pageRepository.deleteById(id.intValue());
         } else {
             throw new jakarta.persistence.EntityNotFoundException("Page not found");
@@ -144,13 +147,29 @@ public class PageCRUDService implements CRUDService<PageDto> {
     public PageModel mapToModel(PageDto pageDto) {
         PageModel pageM = new PageModel();
         SiteModel siteM = siteCRUDService.findByUrl(pageDto.getSite());
-        Long pageId = (pageRepository.findAll().size() == 0) ? 1L : pageRepository.findAll().size() + 1L;
         if (siteM == null) {
             log.error("SiteModel not found for URL: " + pageDto.getSite());
             log.info("Site repo size " + siteCRUDService.findAll().size());
             throw new EntityNotFoundException("SiteModel not found for URL: " + pageDto.getSite());
         }
         //pageM.setId(pageId);
+        pageM.setSite(siteM);
+        pageM.setPath(pageDto.getPath());
+        pageM.setCode(pageDto.getCode());
+        pageM.setContent(pageDto.getContent());
+
+        return pageM;
+    }
+    @Transactional
+    public PageModel mapToModelWithId(PageDto pageDto) {
+        PageModel pageM = new PageModel();
+        SiteModel siteM = siteCRUDService.findByUrl(pageDto.getSite());
+        if (siteM == null) {
+            log.error("SiteModel not found for URL: " + pageDto.getSite());
+            log.info("Site repo size " + siteCRUDService.findAll().size());
+            throw new EntityNotFoundException("SiteModel not found for URL: " + pageDto.getSite());
+        }
+        pageM.setId(pageDto.getId());
         pageM.setSite(siteM);
         pageM.setPath(pageDto.getPath());
         pageM.setCode(pageDto.getCode());

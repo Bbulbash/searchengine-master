@@ -8,6 +8,6 @@ import java.util.List;
 
 @Repository
 public interface PageRepository extends JpaRepository<PageModel, Integer> {
-    PageModel findByPathAndSiteUrl(String url, String sitePath);
+    List<PageModel> findByPathAndSiteUrl(String url, String sitePath);
     List<PageModel> findAllBySiteId(Long id);
 }

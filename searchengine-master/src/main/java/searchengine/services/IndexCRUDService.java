@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import searchengine.dto.objects.IndexDto;
 import searchengine.model.IndexKey;
 import searchengine.model.IndexModel;
+import searchengine.model.LemmaModel;
 import searchengine.model.PageModel;
 import searchengine.repositories.IndexRepository;
 
@@ -27,6 +28,8 @@ public class IndexCRUDService{
     private final SiteCRUDService siteCRUDService;
     @Autowired
     private PageCRUDService pageCRUDService;
+    @Autowired
+    private LemmaCRUDService lemmaCRUDService;
 
 //    @Override
     @Transactional
@@ -54,7 +57,7 @@ public class IndexCRUDService{
     @Transactional
     public void create(IndexDto item) {
         IndexModel indexM = mapToModel(item);
-        indexRepository.save(indexM);
+        indexRepository.saveAndFlush(indexM);
     }
 
     //@Override
@@ -71,7 +74,11 @@ public class IndexCRUDService{
     //@Override
     @Transactional
     public void delete(IndexKey key) {
-        if (indexRepository.existsByKey(key.getPageId(), Long.parseLong(String.valueOf(key.getLemmaId())))) indexRepository.deleteByIndexKey(key.getPageId(), Long.parseLong(String.valueOf(key.getLemmaId())));
+        log.info("Delete index " + key);
+        if (indexRepository.existsByKey(key.getPageId(), Long.parseLong(String.valueOf(key.getLemmaId())))){
+            lemmaCRUDService.delete((long) key.getLemmaId());
+            indexRepository.deleteByIndexKey(key.getPageId(), Long.parseLong(String.valueOf(key.getLemmaId())));
+        }
         else throw new jakarta.persistence.EntityNotFoundException("Index not found");
     }
 
@@ -80,10 +87,11 @@ public class IndexCRUDService{
         IndexModel model = new IndexModel();
         IndexKey key = new IndexKey(dto.getPageId(), dto.getLemmaId());
         log.info("Index page id from index " + dto.getPageId());
-        PageModel pageM = pageCRUDService.mapToModel(pageCRUDService.getById(dto.getPageId()));
-        if (pageM == null) {
+        PageModel pageM;
+        try {
+            pageM = pageCRUDService.mapToModelWithId(pageCRUDService.getById(dto.getPageId()));
+        } catch (EntityNotFoundException ex) {
             log.error("PageModel not found for ID: " + dto.getPageId());
-            log.info("Page repo size " + siteCRUDService.findAll().size());
             throw new EntityNotFoundException("PageModel not found for ID: " + dto.getPageId());
         }
         model.setKey(key);
@@ -113,7 +121,11 @@ public class IndexCRUDService{
     public void deleteByPageId(Long pageId){
         List<IndexModel> models = indexRepository.findAllByPageId(pageId);
         for(IndexModel model : models){
-            log.info("Index model before delete " + model.getKey());
+            log.info("Index model page before delete " + model.getKey().getPageId());
+            log.info("Lemma id " + model.getKey().getLemmaId());
+            //log.info("Index model site " + model.getKey().get);
+            //List<LemmaModel> lemmas = lemmaCRUDService.getLemmasByPage(model.getPage().getId());
+            //lemmas.stream().forEach(it -> lemmaCRUDService.delete(it.getId()));
             indexRepository.delete(model);
         }
     }

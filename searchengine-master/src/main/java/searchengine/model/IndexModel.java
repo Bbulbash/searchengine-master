@@ -10,6 +10,7 @@ import lombok.Setter;
 @Table(name = "Index_table")
 @Getter
 @Setter
+
 @AllArgsConstructor
 @NoArgsConstructor
 
@@ -18,14 +19,9 @@ public class IndexModel {
 
     @EmbeddedId
     private IndexKey key;
-/*    @Id
-    private Long pageId;
-    @Id
-    private Long lemmaId;*/
-    @ManyToOne(fetch = FetchType.EAGER, cascade = CascadeType.ALL)//Ошибка из-за onetoone
+    @ManyToOne(fetch = FetchType.EAGER,  cascade = {CascadeType.MERGE, CascadeType.PERSIST})//Ошибка из-за onetoone
     @JoinColumn(name = "page_id", nullable = false)
     @MapsId("pageId")
-
     private PageModel page;
     @Column(name = "rank_value", nullable = false)
     private float rankValue;

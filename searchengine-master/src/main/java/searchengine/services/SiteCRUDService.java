@@ -48,11 +48,6 @@ public class SiteCRUDService implements CRUDService<SiteDto> {
     @Override
     public void update(SiteDto item) {
         log.info("Inside updating site in site CRUD " + siteRepository.findAll().stream().filter(it -> it.getId() == 52).toList().size());
-        //SiteModel existingSiteM = repository.findById(item.getId().intValue()).get();
-         //       .orElseThrow(() -> new EntityNotFoundException("From site CRUD service. Site with id " + item.getId() + " not found"));
-        //Optional<SiteModel> existingSiteM = repository.findAll().stream().filter(it -> it.getId().equals(it.getId())).findFirst();
-        //SiteModel model = setNewValueToEntity(item, existingSiteM.get());
-        //log.info("Existing site model " + existingSiteM.getName());
         Optional<SiteModel> optionalSiteModel = siteRepository.findById(Math.toIntExact(item.getId()));
         if(optionalSiteModel.isPresent()){
             SiteModel existingSiteM = optionalSiteModel.get();
