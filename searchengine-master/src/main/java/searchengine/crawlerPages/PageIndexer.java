@@ -89,9 +89,9 @@ public class PageIndexer {
         String path = url.getPath();
         log.info("PATH " + path);
         boolean isHostExist = siteCRUDService.existsByUrl(host);
-        if (isHostExist) {
-            isPageExist = pageCRUDService
-                    .getAll().stream().anyMatch(it -> it.getPath().equals(path) && it.getSite().equals(host));
+        if (isHostExist) {//Всегда false что-то не так с поиском
+            // isPageExist = pageCRUDService
+              //      .getAll().stream().anyMatch(it -> it.getPath().equals(path) && it.getSite().equals(host));
             log.info("Host exist. Is page exist = " + isPageExist);
         }
         if (isPageExist) {

@@ -30,13 +30,14 @@ public class LemmaCRUDService implements CRUDService<LemmaDto> {
     public LemmaDto getById(Long id) {
         return mapToDto(lemmaRepository.findById(id.intValue()).get());
     }
+
     @Transactional
-    public LemmaDto getByLemmaAndSiteId(String lemma, Long siteId){
+    public LemmaDto getByLemmaAndSiteId(String lemma, Long siteId) {
         log.info("Before get by lemma and site. Is empty " + lemmaRepository.findAll().isEmpty());
 
         Optional<LemmaModel> modelO = lemmaRepository
                 .findAll().stream().filter(it -> it.getLemma().equals(lemma) && it.getSite().getId().equals(siteId)).findFirst();
-        if(modelO.isPresent()){
+        if (modelO.isPresent()) {
             return mapToDto(modelO.get());
         }
         return null;
@@ -74,19 +75,32 @@ public class LemmaCRUDService implements CRUDService<LemmaDto> {
     @Override
     @Transactional
     public void update(LemmaDto item) {
-        LemmaModel existingLemmaM = lemmaRepository.findById(item.getId().intValue())
-                .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("From lemma CRUD service. Page not found"));
-        LemmaModel lemmaM = mapToModel(item);
-        lemmaRepository.saveAndFlush(lemmaM);
+        //LemmaModel lemmaM = mapToModel(item);
+        //lemmaRepository.saveAndFlush(lemmaM);
+        LemmaModel existingLemma = lemmaRepository.findById(Math.toIntExact(item.getId()))
+                .orElseThrow(() -> new EntityNotFoundException("Lemma not found"));
+        SiteModel siteM = siteCRUDService.findByUrl(item.getSiteUrl());
+
+        if (siteM == null) {
+            log.error("SiteModel not found for URL: " + item.getSiteUrl());
+            log.info("Site repo size " + siteCRUDService.findAll().size());
+            throw new EntityNotFoundException("SiteModel not found for URL: " + item.getSiteUrl());
+        }
+        existingLemma.setLemma(item.getLemma());
+        existingLemma.setFrequency(item.getFrequency());
+        existingLemma.setSite(siteM);
+
+        // Сохраните обновленную сущность
+        lemmaRepository.saveAndFlush(existingLemma);
     }
 
     @Override
     @Transactional
     public void delete(Long id) {
         log.info("Delete lemma " + id.toString());
-        log.info("Lemma site " + lemmaRepository.findAll()
-                .stream().filter(it -> it.getId().equals(id))
-                .collect(Collectors.toList()).stream().findFirst().get().getSite().getName());
+        //  log.info("Lemma site " + lemmaRepository.findAll()
+        //        .stream().filter(it -> it.getId().equals(id))
+        //      .collect(Collectors.toList()).stream().findFirst().get().getSite().getName());
         if (lemmaRepository.existsById(id.intValue())) {
             lemmaRepository.deleteById(id.intValue());
         } else {
@@ -119,8 +133,9 @@ public class LemmaCRUDService implements CRUDService<LemmaDto> {
         model.setLemma(lemmaDto.getLemma());
         return model;
     }
+
     @Transactional
-    public Boolean isServiceEmpty(){
+    public Boolean isServiceEmpty() {
         return lemmaRepository.count() == 0;
     }
    /* @Transactional

@@ -117,7 +117,6 @@ public class PageCRUDService implements CRUDService<PageDto> {
     public void delete(Long id) {
         log.info("Delete site " + id.toString());
         if (pageRepository.existsById(id.intValue())) {
-            //Дописать удаление связанных индексов
             log.info("Index service size " + indexCRUDService.getAll().size());
             List<IndexDto> indexes = indexCRUDService.getAll().stream().filter(it -> it.getPageId() == id).toList();
             log.info("Is indexes present " + indexes.size());
@@ -125,7 +124,7 @@ public class PageCRUDService implements CRUDService<PageDto> {
                 IndexKey key = new IndexKey(dto.getPageId(), dto.getLemmaId());
                 indexCRUDService.delete(key);
             }
-            //
+
             pageRepository.deleteById(id.intValue());
         } else {
             throw new jakarta.persistence.EntityNotFoundException("Page not found");
@@ -160,6 +159,7 @@ public class PageCRUDService implements CRUDService<PageDto> {
 
         return pageM;
     }
+
     @Transactional
     public PageModel mapToModelWithId(PageDto pageDto) {
         PageModel pageM = new PageModel();
@@ -177,10 +177,11 @@ public class PageCRUDService implements CRUDService<PageDto> {
 
         return pageM;
     }
+
     @Transactional
-    public void deleteBySiteId(Long id){
+    public void deleteBySiteId(Long id) {
         List<PageModel> models = pageRepository.findAllBySiteId(id);
-        for(PageModel page : models){
+        for (PageModel page : models) {
             indexCRUDService.deleteByPageId(page.getId());
             pageRepository.delete(page);
         }
