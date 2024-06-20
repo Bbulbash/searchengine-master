@@ -41,15 +41,21 @@ public class SiteCRUDService implements CRUDService<SiteDto> {
         if (list.isEmpty()) {
             return Collections.emptyList();
         }
-        return list.stream().map(it -> mapToDto(it)).collect(Collectors.toList());
+        return list.stream().map(SiteCRUDService::mapToDto).collect(Collectors.toList());
     }
 
     @Transactional(rollbackFor = {RuntimeException.class, EntityNotFoundException.class, Exception.class})
     @Override
     public void update(SiteDto item) {
-        log.info("Inside updating site in site CRUD " + siteRepository.findAll().stream().filter(it -> it.getId() == 52).toList().size());
-        Optional<SiteModel> optionalSiteModel = siteRepository.findById(Math.toIntExact(item.getId()));
-        if(optionalSiteModel.isPresent()){
+        //Optional<SiteModel> optionalSiteModel = siteRepository.findById(Math.toIntExact(item.getId()));
+        Integer siteRepoSize = siteRepository.findAll().size();
+        String itemUrl = item.getUrl();
+        Optional<SiteModel> optionalSiteModel = Optional.ofNullable(siteRepository.findByUrl(itemUrl));
+        if (!optionalSiteModel.isPresent()) {
+            log.warn("Site repo size " + siteRepository.findAll().size());
+            log.info("Site model with id " + item.getId() + " not found");
+            throw new EntityNotFoundException("Site model with id " + item.getId() + " not found");
+        } else {
             SiteModel existingSiteM = optionalSiteModel.get();
             try {
                 log.info("Existing site model " + existingSiteM.getName());
@@ -60,11 +66,7 @@ public class SiteCRUDService implements CRUDService<SiteDto> {
             }catch (Exception ex){
                 log.warn("Exception in update site " + ex.getMessage());
             }
-        }else{
-            log.info("Site model with id " + item.getId() + " not found");
-            throw new EntityNotFoundException("Site model with id " + item.getId() + " not found");
         }
-
     }
 
     @Transactional
@@ -72,7 +74,7 @@ public class SiteCRUDService implements CRUDService<SiteDto> {
     public void create(SiteDto siteDto) {
         SiteModel siteM = mapToModel(siteDto);
         siteM.setStatus(Status.INDEXING);
-        log.info("From site CRUD servise. Site status = " + siteM.getStatus());
+        log.info("From site CRUD service. Site status = " + siteM.getStatus());
         siteM.setStatusTime(LocalDateTime.now());
         siteM.setUrl(siteDto.getUrl());
         siteRepository.saveAndFlush(siteM);
@@ -146,6 +148,4 @@ public class SiteCRUDService implements CRUDService<SiteDto> {
         model.setLastError(dto.getLastError());
         return model;
     }
-
-
 }

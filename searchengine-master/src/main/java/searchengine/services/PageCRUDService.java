@@ -4,17 +4,13 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 import searchengine.dto.objects.IndexDto;
 import searchengine.dto.objects.PageDto;
+import searchengine.dto.objects.SiteDto;
 import searchengine.model.*;
-import searchengine.repositories.IndexRepository;
 import searchengine.repositories.PageRepository;
-import searchengine.repositories.SiteRepository;
-
 import javax.persistence.EntityNotFoundException;
 
 import java.time.LocalDateTime;
@@ -45,7 +41,7 @@ public class PageCRUDService implements CRUDService<PageDto> {
                     .orElseThrow(() -> new EntityNotFoundException("Page with id " + id + " not found."));
         } catch (EntityNotFoundException ex) {
             log.warn("Page with id {} not found: {}", id, ex.getMessage());
-            throw ex;  // или ваше собственное исключение
+            throw ex;
         } catch (Exception ex) {
             log.error("An unexpected error occurred while finding the page by id: {}", id, ex);
             throw new RuntimeException("An unexpected error occurred while finding the page by id: " + id, ex);
@@ -59,7 +55,7 @@ public class PageCRUDService implements CRUDService<PageDto> {
         if (list.isEmpty()) {
             return Collections.emptyList();
         }
-        return list.stream().map(it -> mapToDto(it)).collect(Collectors.toList());
+        return list.stream().map(this::mapToDto).collect(Collectors.toList());
     }
 
     @Transactional
@@ -88,12 +84,14 @@ public class PageCRUDService implements CRUDService<PageDto> {
 
         if (optionalModel.isPresent()) {
             delete(optionalModel.get().getId());
+            log.warn("optionalModel.isPresent()");
         }
 
         if (siteM != null) {
             siteM.setStatusTime(LocalDateTime.now());
             siteM.setStatus(Status.INDEXING);
-            siteCRUDService.update(siteCRUDService.mapToDto(siteM));
+            SiteDto siteDto = SiteCRUDService.mapToDto(siteM);
+            siteCRUDService.update(siteDto);
         } else {
             log.error("Cannot find SiteModel with URL: " + pageM.getSite().getUrl());
             throw new EntityNotFoundException("Site model not found for URL: " + pageM.getSite().getUrl());
@@ -106,8 +104,6 @@ public class PageCRUDService implements CRUDService<PageDto> {
     @Transactional
     @Override
     public void update(PageDto item) {
-        PageModel existingPageM = pageRepository.findById(item.getId().intValue())
-                .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("From page CRUD service. Page not found"));
         PageModel pageModel = mapToModel(item);
         pageRepository.save(pageModel);
     }
@@ -115,10 +111,10 @@ public class PageCRUDService implements CRUDService<PageDto> {
     @Transactional
     @Override
     public void delete(Long id) {
-        log.info("Delete site " + id.toString());
+        log.info("Delete page " + id.toString());
         if (pageRepository.existsById(id.intValue())) {
             log.info("Index service size " + indexCRUDService.getAll().size());
-            List<IndexDto> indexes = indexCRUDService.getAll().stream().filter(it -> it.getPageId() == id).toList();
+            List<IndexDto> indexes = indexCRUDService.getAll().stream().filter(it -> it.getPageId().equals(id)).toList();
             log.info("Is indexes present " + indexes.size());
             for (IndexDto dto : indexes.stream().toList()) {
                 IndexKey key = new IndexKey(dto.getPageId(), dto.getLemmaId());

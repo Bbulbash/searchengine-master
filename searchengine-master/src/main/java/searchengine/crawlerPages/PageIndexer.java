@@ -54,11 +54,12 @@ public class PageIndexer {
 
             String hostName = getHostName(getUrl(url));
             log.info("Is site exist before delete page " + siteCRUDService.existsByUrl(hostName));
-            deleteIfPageExist(hostName);
+            deleteIfPageExist(url);
+            log.info("Url " + url);
             log.info("Host name " + hostName);
             try {
                 errorMessage = null;
-                updateSiteStatus(hostName, errorMessage, Status.INDEXING);
+                // updateSiteStatus(hostName, errorMessage, Status.INDEXING);
                 siteMapManager.setIndexingActive(true);
                 log.info("Before initialization pageDto");
                 PageDto pageDto = initializationPageDto(url);
@@ -80,7 +81,7 @@ public class PageIndexer {
         }
     }
 
-    private void deleteIfPageExist(String urlS) {
+    private void deleteIfPageExist(String urlS) {//Ошибка из-за того что передается хост, а не полный url
         Boolean isPageExist = false;
         Long pageId = null;
         URL url = getUrl(urlS);
@@ -89,9 +90,10 @@ public class PageIndexer {
         String path = url.getPath();
         log.info("PATH " + path);
         boolean isHostExist = siteCRUDService.existsByUrl(host);
-        if (isHostExist) {//Всегда false что-то не так с поиском
-            // isPageExist = pageCRUDService
-              //      .getAll().stream().anyMatch(it -> it.getPath().equals(path) && it.getSite().equals(host));
+        if (isHostExist) {
+            log.info("Count of all pages " + pageCRUDService.getAll().size());
+             isPageExist = pageCRUDService
+                    .getAll().stream().anyMatch(it -> it.getPath().equals(path) && it.getSite().equals(host));
             log.info("Host exist. Is page exist = " + isPageExist);
         }
         if (isPageExist) {
@@ -180,6 +182,7 @@ public class PageIndexer {
 
 private void updateSiteStatus(String url, String errorMessage, Status status) {
     SiteDto dto = siteCRUDService.getByUrl(url);
+    dto.setUrl(url);
     dto.setStatus(status.name());
     dto.setLastError(errorMessage);
     dto.setStatusTime(LocalDateTime.now().toString());
