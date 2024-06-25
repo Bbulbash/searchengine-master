@@ -44,15 +44,11 @@ public class PageIndexer {
 
     public void indexPage(String url) {
         if (isIndexingAllow(url)) {
-            //log.info("Is indexing allow " + isIndexingAllow(url));
-
             String hostName = getHostName(getUrl(url));
             log.info("Is site exist before delete page " + siteCRUDService.existsByUrl(hostName));
             deleteIfPageExist(url);
-            log.info("Url " + url);
-            log.info("Host name " + hostName);
             try {
-                errorMessage = null;
+                //errorMessage = null;
                 siteMapManager.setIndexingActive(true);
                 log.info("Before initialization pageDto");
                 PageDto pageDto = initializationPageDto(url);

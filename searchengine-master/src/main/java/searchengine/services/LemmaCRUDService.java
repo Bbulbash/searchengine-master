@@ -88,7 +88,6 @@ public class LemmaCRUDService implements CRUDService<LemmaDto> {
         existingLemma.setFrequency(item.getFrequency());
         existingLemma.setSite(siteM);
 
-        // Сохраните обновленную сущность
         lemmaRepository.saveAndFlush(existingLemma);
     }
 

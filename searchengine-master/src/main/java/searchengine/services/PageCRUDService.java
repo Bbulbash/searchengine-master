@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 import searchengine.dto.objects.IndexDto;
 import searchengine.dto.objects.LemmaDto;
@@ -12,6 +13,7 @@ import searchengine.dto.objects.PageDto;
 import searchengine.dto.objects.SiteDto;
 import searchengine.model.*;
 import searchengine.repositories.PageRepository;
+
 import javax.persistence.EntityNotFoundException;
 
 import java.time.LocalDateTime;
@@ -84,7 +86,7 @@ public class PageCRUDService implements CRUDService<PageDto> {
         if (optionalModel.isPresent()) {
             //delete(optionalModel.get().getId());
             log.warn("optionalModel.isPresent()");
-        }else{
+        } else {
             log.warn("Don`t present");
         }
 
@@ -108,30 +110,54 @@ public class PageCRUDService implements CRUDService<PageDto> {
         pageRepository.save(pageModel);
     }
 
-    @Transactional
+    //    @Transactional
+//    @Override
+//    public void delete(Long id) { // Дописать поиск всех индексов страницы, взять все леммы индексов, для каждой леммы frequency -1
+//        List<Integer> lemmasId = new ArrayList<>();
+//        log.info("Delete page " + id.toString());
+//        if (pageRepository.existsById(id.intValue())) {
+//            log.info("Index service size " + indexCRUDService.getAll().size());
+//            List<IndexDto> indexes = indexCRUDService.getAll().stream().filter(it -> it.getPageId().equals(id)).toList();
+//            log.info("Is indexes present " + indexes.size());
+//            for (IndexDto dto : indexes.stream().toList()) {
+//                lemmasId.add(dto.getLemmaId());
+//                IndexKey key = new IndexKey(dto.getPageId(), dto.getLemmaId());
+//                indexCRUDService.delete(key);
+//            }
+//            for(Integer lemmaId : lemmasId){
+//                LemmaDto dto = lemmaCRUDService.getById(Long.valueOf(lemmaId));
+//                int newFrequency = dto.getFrequency() - 1;
+//                dto.setFrequency(newFrequency);
+//                lemmaCRUDService.update(dto);
+//            }
+//            pageRepository.deleteById(id);
+//        } else {
+//            throw new jakarta.persistence.EntityNotFoundException("Page not found");
+//        }
+//    }
+    @Transactional(isolation = Isolation.SERIALIZABLE)
     @Override
-    public void delete(Long id) { // Дописать поиск всех индексов страницы, взять все леммы индексов, для каждой леммы frequency -1
-        List<Integer> lemmasId = new ArrayList<>();
-        log.info("Delete page " + id.toString());
+    public void delete(Long id) {
+        log.info("Delete page " + id);
         if (pageRepository.existsById(id.intValue())) {
-            log.info("Index service size " + indexCRUDService.getAll().size());
+            // Получаем все индексы связанные со страницей
             List<IndexDto> indexes = indexCRUDService.getAll().stream().filter(it -> it.getPageId().equals(id)).toList();
-            log.info("Is indexes present " + indexes.size());
-            for (IndexDto dto : indexes.stream().toList()) {
-                lemmasId.add(dto.getLemmaId());
-                IndexKey key = new IndexKey(dto.getPageId(), dto.getLemmaId());
-                indexCRUDService.delete(key);
-            }
-            for(Integer lemmaId : lemmasId){
-                LemmaDto dto = lemmaCRUDService.getById(Long.valueOf(lemmaId));
-                int newFrequency = dto.getFrequency() - 1;
-                dto.setFrequency(newFrequency);
-                lemmaCRUDService.update(dto);
-            }
+            log.info("Found {} indexes for page id {}", indexes.size(), id);
 
-            pageRepository.deleteById(id);
+            indexes.forEach(index -> {
+                LemmaDto lemma = lemmaCRUDService.getById(Long.valueOf(index.getLemmaId()));
+                lemma.setFrequency(lemma.getFrequency() - 1);
+                lemmaCRUDService.update(lemma);
+
+                IndexKey key = new IndexKey(index.getPageId(), index.getLemmaId());
+                indexCRUDService.delete(key);
+            });
+            List<IndexDto> indexForLog = indexCRUDService.getAll().stream().filter(it -> it.getPageId().equals(id)).toList();
+            log.warn("indexForLog size " + indexForLog.size());
+            log.warn("lemma repo is empty " + lemmaCRUDService.isServiceEmpty());
+            pageRepository.deleteById(id.intValue());
         } else {
-            throw new jakarta.persistence.EntityNotFoundException("Page not found");
+            throw new EntityNotFoundException("Page not found with id: " + id);
         }
     }
 
