@@ -6,12 +6,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import searchengine.dto.objects.LemmaDto;
 import searchengine.model.LemmaModel;
-import searchengine.model.PageModel;
 import searchengine.model.SiteModel;
 import searchengine.model.Status;
 import searchengine.repositories.LemmaRepository;
-import searchengine.repositories.PageRepository;
-
 import javax.persistence.EntityNotFoundException;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -77,6 +74,7 @@ public class LemmaCRUDService implements CRUDService<LemmaDto> {
     public void update(LemmaDto item) {
         //LemmaModel lemmaM = mapToModel(item);
         //lemmaRepository.saveAndFlush(lemmaM);
+        log.warn("Update lemma " + item.getId());
         LemmaModel existingLemma = lemmaRepository.findById(Math.toIntExact(item.getId()))
                 .orElseThrow(() -> new EntityNotFoundException("Lemma not found"));
         SiteModel siteM = siteCRUDService.findByUrl(item.getSiteUrl());
@@ -98,9 +96,6 @@ public class LemmaCRUDService implements CRUDService<LemmaDto> {
     @Transactional
     public void delete(Long id) {
         log.info("Delete lemma " + id.toString());
-        //  log.info("Lemma site " + lemmaRepository.findAll()
-        //        .stream().filter(it -> it.getId().equals(id))
-        //      .collect(Collectors.toList()).stream().findFirst().get().getSite().getName());
         if (lemmaRepository.existsById(id.intValue())) {
             lemmaRepository.deleteById(id.intValue());
         } else {
@@ -138,14 +133,5 @@ public class LemmaCRUDService implements CRUDService<LemmaDto> {
     public Boolean isServiceEmpty() {
         return lemmaRepository.count() == 0;
     }
-   /* @Transactional
-    public List<LemmaModel> getLemmasByPage(Long pageId){
-        if (lemmaRepository.existsByPageId(pageId)){
-            return getLemmasByPage(pageId);
-        }else{
-            return new ArrayList<>();
-        }
-
-    }*/
 
 }

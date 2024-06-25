@@ -47,7 +47,7 @@ public class IndexingService {
     public boolean isAllowIndexingPage(String url){
         return pageIndexer.isIndexingAllow(url);
     }
-    @Transactional
+    //@Transactional
     public void startIndexingPage(String url){
         pageIndexer.indexPage(url);
     }

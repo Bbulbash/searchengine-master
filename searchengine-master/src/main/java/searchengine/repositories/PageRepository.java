@@ -10,4 +10,5 @@ import java.util.List;
 public interface PageRepository extends JpaRepository<PageModel, Integer> {
     List<PageModel> findByPathAndSiteUrl(String url, String sitePath);
     List<PageModel> findAllBySiteId(Long id);
+    void deleteById(Long id);
 }

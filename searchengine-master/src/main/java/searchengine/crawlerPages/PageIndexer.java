@@ -6,6 +6,7 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import searchengine.config.Site;
 import searchengine.config.SitesList;
 import searchengine.dto.objects.PageDto;
@@ -41,16 +42,9 @@ public class PageIndexer {
     private boolean success = true;
     private List<Site> listOfSite;
 
-//    public PageIndexer(SiteMapManager siteMapManager, PageCRUDService pageCRUDService, SiteCRUDService siteCRUDService) {
-//        this.siteMapManager = siteMapManager;
-//        this.pageCRUDService = pageCRUDService;
-//        this.siteCRUDService = siteCRUDService;
-//    }
-
     public void indexPage(String url) {
-        //Метод проверяющий наличие сайта в репозитории, если его там нет, проверяющий наличие сайта в конфиге, если там есть - создать новый сайт
         if (isIndexingAllow(url)) {
-            log.info("Is indexing allow " + isIndexingAllow(url));
+            //log.info("Is indexing allow " + isIndexingAllow(url));
 
             String hostName = getHostName(getUrl(url));
             log.info("Is site exist before delete page " + siteCRUDService.existsByUrl(hostName));
@@ -59,7 +53,6 @@ public class PageIndexer {
             log.info("Host name " + hostName);
             try {
                 errorMessage = null;
-                // updateSiteStatus(hostName, errorMessage, Status.INDEXING);
                 siteMapManager.setIndexingActive(true);
                 log.info("Before initialization pageDto");
                 PageDto pageDto = initializationPageDto(url);
@@ -81,7 +74,9 @@ public class PageIndexer {
         }
     }
 
+    //@Transactional
     private void deleteIfPageExist(String urlS) {//Ошибка из-за того что передается хост, а не полный url
+        log.warn("UrlS " + urlS);
         Boolean isPageExist = false;
         Long pageId = null;
         URL url = getUrl(urlS);
@@ -92,7 +87,7 @@ public class PageIndexer {
         boolean isHostExist = siteCRUDService.existsByUrl(host);
         if (isHostExist) {
             log.info("Count of all pages " + pageCRUDService.getAll().size());
-             isPageExist = pageCRUDService
+            isPageExist = pageCRUDService
                     .getAll().stream().anyMatch(it -> it.getPath().equals(path) && it.getSite().equals(host));
             log.info("Host exist. Is page exist = " + isPageExist);
         }
@@ -180,14 +175,14 @@ public class PageIndexer {
         return pageDto;
     }
 
-private void updateSiteStatus(String url, String errorMessage, Status status) {
-    SiteDto dto = siteCRUDService.getByUrl(url);
-    dto.setUrl(url);
-    dto.setStatus(status.name());
-    dto.setLastError(errorMessage);
-    dto.setStatusTime(LocalDateTime.now().toString());
-    siteCRUDService.update(dto);
-}
+    private void updateSiteStatus(String url, String errorMessage, Status status) {
+        SiteDto dto = siteCRUDService.getByUrl(url);
+        dto.setUrl(url);
+        dto.setStatus(status.name());
+        dto.setLastError(errorMessage);
+        dto.setStatusTime(LocalDateTime.now().toString());
+        siteCRUDService.update(dto);
+    }
 
 
     private void createSite(String url) {

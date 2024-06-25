@@ -92,6 +92,7 @@ public class Lemmizer {
 
         String cleanText0 = text.replaceAll(regex, "");
         String cleanText1 = cleanText0.replaceAll(regex1, " ");
+        log.info("Clean text" + cleanText1);
         LuceneMorphology luceneMorphology = new RussianLuceneMorphology();
         List<String> words = new ArrayList<>();
         for (String word : cleanText1.split(" ")) {

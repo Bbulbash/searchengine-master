@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import searchengine.dto.objects.IndexDto;
+import searchengine.dto.objects.LemmaDto;
 import searchengine.dto.objects.PageDto;
 import searchengine.dto.objects.SiteDto;
 import searchengine.model.*;
@@ -14,10 +15,7 @@ import searchengine.repositories.PageRepository;
 import javax.persistence.EntityNotFoundException;
 
 import java.time.LocalDateTime;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -31,6 +29,8 @@ public class PageCRUDService implements CRUDService<PageDto> {
     private final SiteCRUDService siteCRUDService;
     @Autowired
     private IndexCRUDService indexCRUDService;
+    @Autowired
+    private LemmaCRUDService lemmaCRUDService;
 
     @Transactional
     @Override
@@ -78,13 +78,14 @@ public class PageCRUDService implements CRUDService<PageDto> {
         PageModel pageM = mapToModel(item);
 
         log.warn("From page CRUD Service. Page model get site url == " + pageM.getSite().getUrl());
-        log.warn("From page CRUD Service.1 Site repo size " + siteCRUDService.findAll().size());
         SiteModel siteM = siteCRUDService.findByUrl(pageM.getSite().getUrl());
         Optional<PageModel> optionalModel = pageRepository.findByPathAndSiteUrl(pageM.getPath(), siteM.getUrl()).stream().findFirst();
 
         if (optionalModel.isPresent()) {
-            delete(optionalModel.get().getId());
+            //delete(optionalModel.get().getId());
             log.warn("optionalModel.isPresent()");
+        }else{
+            log.warn("Don`t present");
         }
 
         if (siteM != null) {
@@ -98,7 +99,6 @@ public class PageCRUDService implements CRUDService<PageDto> {
         }
         log.warn("New page id " + pageM.getId());
         pageRepository.saveAndFlush(pageM);
-
     }
 
     @Transactional
@@ -110,18 +110,26 @@ public class PageCRUDService implements CRUDService<PageDto> {
 
     @Transactional
     @Override
-    public void delete(Long id) {
+    public void delete(Long id) { // Дописать поиск всех индексов страницы, взять все леммы индексов, для каждой леммы frequency -1
+        List<Integer> lemmasId = new ArrayList<>();
         log.info("Delete page " + id.toString());
         if (pageRepository.existsById(id.intValue())) {
             log.info("Index service size " + indexCRUDService.getAll().size());
             List<IndexDto> indexes = indexCRUDService.getAll().stream().filter(it -> it.getPageId().equals(id)).toList();
             log.info("Is indexes present " + indexes.size());
             for (IndexDto dto : indexes.stream().toList()) {
+                lemmasId.add(dto.getLemmaId());
                 IndexKey key = new IndexKey(dto.getPageId(), dto.getLemmaId());
                 indexCRUDService.delete(key);
             }
+            for(Integer lemmaId : lemmasId){
+                LemmaDto dto = lemmaCRUDService.getById(Long.valueOf(lemmaId));
+                int newFrequency = dto.getFrequency() - 1;
+                dto.setFrequency(newFrequency);
+                lemmaCRUDService.update(dto);
+            }
 
-            pageRepository.deleteById(id.intValue());
+            pageRepository.deleteById(id);
         } else {
             throw new jakarta.persistence.EntityNotFoundException("Page not found");
         }

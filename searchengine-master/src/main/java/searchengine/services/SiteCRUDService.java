@@ -48,7 +48,7 @@ public class SiteCRUDService implements CRUDService<SiteDto> {
     @Override
     public void update(SiteDto item) {
         //Optional<SiteModel> optionalSiteModel = siteRepository.findById(Math.toIntExact(item.getId()));
-        Integer siteRepoSize = siteRepository.findAll().size();
+       // Integer siteRepoSize = siteRepository.findAll().size();
         String itemUrl = item.getUrl();
         Optional<SiteModel> optionalSiteModel = Optional.ofNullable(siteRepository.findByUrl(itemUrl));
         if (!optionalSiteModel.isPresent()) {
