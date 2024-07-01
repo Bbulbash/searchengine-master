@@ -25,7 +25,12 @@ public class LemmaCRUDService implements CRUDService<LemmaDto> {
     @Override
     @Transactional
     public LemmaDto getById(Long id) {
-        return mapToDto(lemmaRepository.findById(id.intValue()).get());
+        Optional<LemmaModel> lemmaOpt = lemmaRepository.findById(id.intValue());
+        if (lemmaOpt.isPresent()) {
+            return mapToDto(lemmaOpt.get());
+        } else {
+            throw new EntityNotFoundException("Lemma with id " + id + " not found");
+        }
     }
 
     @Transactional

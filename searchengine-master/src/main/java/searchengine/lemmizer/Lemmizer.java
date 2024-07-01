@@ -34,7 +34,6 @@ public class Lemmizer {
         log.info("Page dto path " + pageDto.getPath());
         Map<String, Integer> lemmaCountMap = getLemmasList(pageDto.getContent());
         log.info("Lemma count map " + lemmaCountMap.isEmpty());
-       // log.info("siteCRUDService.getByUrl(pageDto.getSite()).getId() " + siteCRUDService.getByUrl(pageDto.getSite()).getId());
         for (String lemmaName : lemmaCountMap.keySet()) {
             LemmaDto lemmaDto = lemmaCRUDService
                     .getByLemmaAndSiteId(lemmaName, siteCRUDService.getByUrl(pageDto.getSite()).getId());// Что-то ломается здесь
@@ -45,7 +44,7 @@ public class Lemmizer {
                 lemmaDto.setFrequency(lemmaDto.getFrequency() + 1);
                 lemmaCRUDService.update(lemmaDto);
             }
-            createIndex(lemmaCountMap.get(lemmaName), pageId, lemmaDto);//возвращается lemmaDto = null из-за этого выдается ошибка
+            createIndex(lemmaCountMap.get(lemmaName), pageId, lemmaDto);
         }
 
     }

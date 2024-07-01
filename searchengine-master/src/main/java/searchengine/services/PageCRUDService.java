@@ -3,6 +3,7 @@ package searchengine.services;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.hibernate.SessionFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
@@ -13,9 +14,9 @@ import searchengine.dto.objects.PageDto;
 import searchengine.dto.objects.SiteDto;
 import searchengine.model.*;
 import searchengine.repositories.PageRepository;
-
+import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
 import javax.persistence.EntityNotFoundException;
-
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -110,37 +111,12 @@ public class PageCRUDService implements CRUDService<PageDto> {
         pageRepository.save(pageModel);
     }
 
-    //    @Transactional
-//    @Override
-//    public void delete(Long id) { // Дописать поиск всех индексов страницы, взять все леммы индексов, для каждой леммы frequency -1
-//        List<Integer> lemmasId = new ArrayList<>();
-//        log.info("Delete page " + id.toString());
-//        if (pageRepository.existsById(id.intValue())) {
-//            log.info("Index service size " + indexCRUDService.getAll().size());
-//            List<IndexDto> indexes = indexCRUDService.getAll().stream().filter(it -> it.getPageId().equals(id)).toList();
-//            log.info("Is indexes present " + indexes.size());
-//            for (IndexDto dto : indexes.stream().toList()) {
-//                lemmasId.add(dto.getLemmaId());
-//                IndexKey key = new IndexKey(dto.getPageId(), dto.getLemmaId());
-//                indexCRUDService.delete(key);
-//            }
-//            for(Integer lemmaId : lemmasId){
-//                LemmaDto dto = lemmaCRUDService.getById(Long.valueOf(lemmaId));
-//                int newFrequency = dto.getFrequency() - 1;
-//                dto.setFrequency(newFrequency);
-//                lemmaCRUDService.update(dto);
-//            }
-//            pageRepository.deleteById(id);
-//        } else {
-//            throw new jakarta.persistence.EntityNotFoundException("Page not found");
-//        }
-//    }
     @Transactional(isolation = Isolation.SERIALIZABLE)
     @Override
     public void delete(Long id) {
         log.info("Delete page " + id);
         if (pageRepository.existsById(id.intValue())) {
-            // Получаем все индексы связанные со страницей
+
             List<IndexDto> indexes = indexCRUDService.getAll().stream().filter(it -> it.getPageId().equals(id)).toList();
             log.info("Found {} indexes for page id {}", indexes.size(), id);
 
@@ -155,12 +131,14 @@ public class PageCRUDService implements CRUDService<PageDto> {
             List<IndexDto> indexForLog = indexCRUDService.getAll().stream().filter(it -> it.getPageId().equals(id)).toList();
             log.warn("indexForLog size " + indexForLog.size());
             log.warn("lemma repo is empty " + lemmaCRUDService.isServiceEmpty());
+            log.warn("Second check is page exist "+ pageRepository.existsById(id.intValue()));
+
             pageRepository.deleteById(id.intValue());
+
         } else {
             throw new EntityNotFoundException("Page not found with id: " + id);
         }
     }
-
     public PageDto mapToDto(PageModel page) {
         PageDto pageDto = new PageDto();
         pageDto.setId(page.getId());
@@ -208,12 +186,11 @@ public class PageCRUDService implements CRUDService<PageDto> {
         return pageM;
     }
 
-    @Transactional
+    //@Transactional
     public void deleteBySiteId(Long id) {
         List<PageModel> models = pageRepository.findAllBySiteId(id);
         for (PageModel page : models) {
-            indexCRUDService.deleteByPageId(page.getId());
-            pageRepository.delete(page);
+            delete(page.getId());
         }
 
     }

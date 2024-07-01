@@ -19,7 +19,7 @@ import java.util.List;
 @NoArgsConstructor
 public class SiteModel {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, columnDefinition = "ENUM('FAILED', 'INDEXED', 'INDEXING')")

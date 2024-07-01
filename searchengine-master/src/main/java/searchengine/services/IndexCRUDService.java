@@ -31,20 +31,13 @@ public class IndexCRUDService{
     private PageCRUDService pageCRUDService;
     @Autowired
     private LemmaCRUDService lemmaCRUDService;
-
-//    @Override
     @Transactional
     public IndexDto getById(IndexKey key) {
         IndexModel model = indexRepository.findByKey(key)
                 .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("From index CRUD service. Index not found"));
         return mapToDto(model);//mapToDto(indexRepository.getReferenceById(Math.toIntExact(id)));
     }
-    /* @Transactional
-    public IndexDto getByKey(IndexKey key){
-        return indexRepository.
-    }*/
 
- //   @Override
     @Transactional
     public Collection<IndexDto> getAll() {
         List<IndexModel> list = indexRepository.findAll();

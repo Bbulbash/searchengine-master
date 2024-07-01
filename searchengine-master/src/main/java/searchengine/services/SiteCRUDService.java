@@ -99,6 +99,10 @@ public class SiteCRUDService implements CRUDService<SiteDto> {
         return siteRepository.findByUrl(url);
     }
     @Transactional
+    public SiteDto findByUrlSiteDto(String url){
+        return mapToDto(siteRepository.findByUrl(url));
+    }
+    @Transactional
     public List<SiteModel> findAll(){
         return siteRepository.findAll();
     }

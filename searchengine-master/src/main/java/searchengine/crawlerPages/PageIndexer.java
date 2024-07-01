@@ -46,7 +46,10 @@ public class PageIndexer {
         if (isIndexingAllow(url)) {
             String hostName = getHostName(getUrl(url));
             log.info("Is site exist before delete page " + siteCRUDService.existsByUrl(hostName));
-            deleteIfPageExist(url);
+            //deleteIfPageExist(url);
+            deleteIfSiteExist(hostName);
+
+            createSite(hostName);
             try {
                 //errorMessage = null;
                 siteMapManager.setIndexingActive(true);
@@ -54,14 +57,14 @@ public class PageIndexer {
                 PageDto pageDto = initializationPageDto(url);
                 pageCRUDService.create(pageDto);
                 PageDto newPage = pageCRUDService.getByPathAndSitePath(pageDto.getPath(), pageDto.getSite());// Новая ошибка тут
-                lemmizer.createLemmasAndIndex(newPage);// Множественное создание страниц отсюда
+                lemmizer.createLemmasAndIndex(newPage);
                 log.info("After saving page dto object");
                 siteMapManager.setIndexingActive(false);
                 //updateSiteStatus(hostName, errorMessage, Status.INDEXED);
             } catch (Exception e) {
                 success = false;
                 errorMessage = e.getMessage();
-                //updateSiteStatus(hostName, errorMessage, Status.FAILED);
+                updateSiteStatus(hostName, errorMessage, Status.FAILED);
                 System.out.println("-----------1--------");
                 System.out.println("Ошбика при обработке URL: " + hostName + " " + e.getMessage());
                 System.out.println("-----------------------");
@@ -96,6 +99,15 @@ public class PageIndexer {
             pageCRUDService.delete(pageId);
         }
 
+    }
+
+    private void deleteIfSiteExist(String url) {
+        boolean isHostExist = siteCRUDService.existsByUrl(url);
+        log.warn("Page indexer is host exist " + isHostExist);
+        if (isHostExist) {
+            SiteDto dto = siteCRUDService.findByUrlSiteDto(url);
+            siteCRUDService.delete(dto.getId());
+        }
     }
 
     public Boolean isIndexingAllow(String url) {
