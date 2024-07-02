@@ -19,7 +19,7 @@ public class PageModel {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
-    @ManyToOne(fetch = FetchType.EAGER, cascade = {CascadeType.PERSIST, CascadeType.MERGE})//, cascade = CascadeType.REMOVE)
+    @ManyToOne(fetch = FetchType.EAGER, cascade = CascadeType.ALL)//cascade = {CascadeType.PERSIST, CascadeType.MERGE}
     private SiteModel site;
     @Column(name = "path", nullable = false, length = 255)
     private String path;

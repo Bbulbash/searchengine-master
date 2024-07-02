@@ -5,12 +5,16 @@ import org.springframework.stereotype.Repository;
 import searchengine.model.SiteModel;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 @Repository
-public interface SiteRepository extends JpaRepository<SiteModel, Integer> {
+public interface SiteRepository extends JpaRepository<SiteModel, UUID> {
     SiteModel findByUrl(String url);
     List<SiteModel> findAllByStatus(String status);
     Boolean existsByUrl(String url);
+    boolean existsById(UUID uuid);
+    Optional<SiteModel> findById(UUID uuid);
     List<SiteModel> findAll();
 
 

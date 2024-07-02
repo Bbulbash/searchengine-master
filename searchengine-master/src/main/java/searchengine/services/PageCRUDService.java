@@ -3,7 +3,6 @@ package searchengine.services;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.hibernate.SessionFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
@@ -14,8 +13,7 @@ import searchengine.dto.objects.PageDto;
 import searchengine.dto.objects.SiteDto;
 import searchengine.model.*;
 import searchengine.repositories.PageRepository;
-import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
+
 import javax.persistence.EntityNotFoundException;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -187,8 +185,8 @@ public class PageCRUDService implements CRUDService<PageDto> {
     }
 
     //@Transactional
-    public void deleteBySiteId(Long id) {
-        List<PageModel> models = pageRepository.findAllBySiteId(id);
+    public void deleteBySiteUUID(UUID uuid) {
+        List<PageModel> models = pageRepository.findAllBySiteId(uuid);
         for (PageModel page : models) {
             delete(page.getId());
         }

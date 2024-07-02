@@ -19,22 +19,22 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class SiteCRUDService implements CRUDService<SiteDto> {
+public class SiteCRUDService  {//implements CRUDService<SiteDto>
 
     private final SiteRepository siteRepository;
     @Autowired
     private PageCRUDService pageCRUDService;
-    @Override
+    //@Override
     @Transactional
-    public SiteDto getById(Long id) {
-        return mapToDto(siteRepository.findById(id.intValue()).get());
+    public SiteDto getById(UUID uuid) {
+        return mapToDto(siteRepository.findById(uuid).get());
     }
     @Transactional
     public SiteDto getByUrl(String url){
         return mapToDto(siteRepository.findByUrl(url));
     }
 
-    @Override
+   // @Override
     @Transactional
     public Collection<SiteDto> getAll() {
         List<SiteModel> list = siteRepository.findAll();
@@ -45,7 +45,7 @@ public class SiteCRUDService implements CRUDService<SiteDto> {
     }
 
     @Transactional(rollbackFor = {RuntimeException.class, EntityNotFoundException.class, Exception.class})
-    @Override
+   // @Override
     public void update(SiteDto item) {
         //Optional<SiteModel> optionalSiteModel = siteRepository.findById(Math.toIntExact(item.getId()));
        // Integer siteRepoSize = siteRepository.findAll().size();
@@ -70,26 +70,27 @@ public class SiteCRUDService implements CRUDService<SiteDto> {
     }
 
     @Transactional
-    @Override
+    //@Override
     public void create(SiteDto siteDto) {
         SiteModel siteM = mapToModel(siteDto);
         siteM.setStatus(Status.INDEXING);
         log.info("From site CRUD service. Site status = " + siteM.getStatus());
         siteM.setStatusTime(LocalDateTime.now());
         siteM.setUrl(siteDto.getUrl());
-        siteRepository.saveAndFlush(siteM);
+        //siteRepository.saveAndFlush(siteM);
+        siteRepository.save(siteM);
         log.info("Site " + siteM.getUrl() + " was saved");
         log.info("Repository size after creating site " + siteRepository.findAll().size());
 
     }
 
     @Transactional
-    @Override
-    public void delete(Long id) {
-        log.info("Delete site " + id.toString());
-        if (siteRepository.existsById(id.intValue())) {
-            pageCRUDService.deleteBySiteId(id);
-            siteRepository.deleteById(id.intValue());
+   // @Override
+    public void delete(UUID uuid) {
+        log.info("Delete site " + uuid.toString());
+        if (siteRepository.existsById(uuid)) {
+            pageCRUDService.deleteBySiteUUID(uuid);
+            siteRepository.deleteById(uuid);
         } else {
             throw new EntityNotFoundException("Site not found");
         }
@@ -121,7 +122,7 @@ public class SiteCRUDService implements CRUDService<SiteDto> {
 
     public static SiteDto mapToDto(SiteModel siteModel) {
         SiteDto siteDto = new SiteDto();
-        siteDto.setId(siteModel.getId());
+        siteDto.setId(siteModel.getId().toString());
         siteDto.setStatus(siteModel.getStatus().name());
         siteDto.setStatusTime(siteModel.getStatusTime().toString());
         siteDto.setLastError(siteModel.getLastError());
@@ -131,7 +132,7 @@ public class SiteCRUDService implements CRUDService<SiteDto> {
     }
     public static SiteModel mapToModel(SiteDto siteDto) {
         SiteModel siteM = new SiteModel();
-        siteM.setId(siteDto.getId());
+        //siteM.setId(UUID.fromString(siteDto.getId()));
         siteM.setUrl(siteDto.getUrl());
         siteM.setName(siteDto.getName());
         siteM.setStatus(Status.valueOf(siteDto.getStatus()));

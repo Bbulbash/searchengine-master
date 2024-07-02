@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 @Setter
 @AllArgsConstructor
 public class SiteDto {
-    private Long id;
+    private String id;
     private String status;
     private String statusTime;
     private String lastError;

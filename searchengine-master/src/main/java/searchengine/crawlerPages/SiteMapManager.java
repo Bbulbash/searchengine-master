@@ -56,10 +56,10 @@ public class SiteMapManager {
     }
 
     private void createSite(Site site) {
-        Long siteId = getNewSiteId();
+        //Long siteId = getNewSiteId();
         SiteDto siteDto = new SiteDto();
-        siteDto.setId(siteId);
-        log.info("New site id is " + siteId);
+        //siteDto.setId(siteId);
+        log.info("New site creating");
         siteDto.setName(site.getName());
         siteDto.setUrl(site.getUrl());
         siteDto.setStatus(Status.INDEXING.name());

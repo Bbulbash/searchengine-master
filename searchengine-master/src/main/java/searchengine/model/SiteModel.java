@@ -6,10 +6,13 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.GenericGenerator;
+import org.hibernate.annotations.Type;
 
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Entity
 @Table(name = "Site")
@@ -19,8 +22,11 @@ import java.util.List;
 @NoArgsConstructor
 public class SiteModel {
     @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
+    /*@Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Long id;*/
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, columnDefinition = "ENUM('FAILED', 'INDEXED', 'INDEXING')")
     private Status status;

@@ -17,7 +17,7 @@ public class LemmaModel {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     // @Column(name = "site_id", nullable = false)
-    @ManyToOne(fetch = FetchType.EAGER, cascade = {CascadeType.PERSIST, CascadeType.MERGE}, optional = true)
+    @ManyToOne(fetch = FetchType.EAGER, cascade = CascadeType.ALL, optional = true)//cascade = {CascadeType.PERSIST, CascadeType.MERGE}
     @JoinColumn(name = "site_id", referencedColumnName = "id", nullable = true)
     private SiteModel site;
     @Column(name = "lemma", nullable = false, length = 255)

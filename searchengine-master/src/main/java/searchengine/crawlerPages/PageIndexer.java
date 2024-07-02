@@ -22,6 +22,7 @@ import java.net.URL;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @Slf4j
@@ -105,8 +106,9 @@ public class PageIndexer {
         boolean isHostExist = siteCRUDService.existsByUrl(url);
         log.warn("Page indexer is host exist " + isHostExist);
         if (isHostExist) {
+            log.warn("deleteIfSiteExist before deleting. URL = " + url);
             SiteDto dto = siteCRUDService.findByUrlSiteDto(url);
-            siteCRUDService.delete(dto.getId());
+            siteCRUDService.delete(UUID.fromString(dto.getId()));
         }
     }
 
@@ -200,10 +202,10 @@ public class PageIndexer {
         if (optionalSite.isPresent()) {
             site = optionalSite.get();
         }
-        Long siteId = getNewSiteId();
+        //Long siteId = getNewSiteId();
         SiteDto siteDto = new SiteDto();
-        siteDto.setId(siteId);
-        log.info("New site id is " + siteId);
+        //siteDto.setId(siteId);
+        //log.info("New site id is " + siteId);
         siteDto.setName(site.getName());
         siteDto.setUrl(site.getUrl());
         siteDto.setStatus(Status.INDEXING.name());

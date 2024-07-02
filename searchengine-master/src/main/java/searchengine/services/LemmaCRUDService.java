@@ -34,11 +34,11 @@ public class LemmaCRUDService implements CRUDService<LemmaDto> {
     }
 
     @Transactional
-    public LemmaDto getByLemmaAndSiteId(String lemma, Long siteId) {
+    public LemmaDto getByLemmaAndSiteId(String lemma, UUID uuid) {
         log.info("Before get by lemma and site. Is empty " + lemmaRepository.findAll().isEmpty());
 
         Optional<LemmaModel> modelO = lemmaRepository
-                .findAll().stream().filter(it -> it.getLemma().equals(lemma) && it.getSite().getId().equals(siteId)).findFirst();
+                .findAll().stream().filter(it -> it.getLemma().equals(lemma) && it.getSite().getId().equals(uuid)).findFirst();
         if (modelO.isPresent()) {
             return mapToDto(modelO.get());
         }
