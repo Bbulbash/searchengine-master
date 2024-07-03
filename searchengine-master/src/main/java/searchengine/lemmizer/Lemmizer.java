@@ -58,15 +58,12 @@ public class Lemmizer {
     }
 
     private LemmaDto createLemma(String siteUrl, String lemmaName) {
-        Boolean isServiceEmpty = lemmaCRUDService.isServiceEmpty();
-        Long idLemma = (isServiceEmpty) ? 1L : Long.parseLong(String.valueOf(lemmaCRUDService.getAll().size())) + 1L;
         LemmaDto dto = new LemmaDto();
-        dto.setId(idLemma);
         dto.setSiteUrl(siteUrl);
-        dto.setFrequency(1);
         dto.setLemma(lemmaName);
         lemmaCRUDService.create(dto);
-        return dto;
+        LemmaDto dtoForReturn = lemmaCRUDService.getByLemmaAndSiteId(lemmaName, siteCRUDService.findByUrl(siteUrl).getId());
+        return dtoForReturn;
     }
 
     public Map<String, Integer> getLemmasList(String text) throws IOException {

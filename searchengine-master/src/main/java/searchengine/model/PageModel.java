@@ -7,6 +7,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.util.Set;
+
 @Entity
 @Table(name = "Page", indexes = {
         @Index(name = "idx_path", columnList = "path")
@@ -17,7 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 @NoArgsConstructor
 public class PageModel {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE)
     private Long id;
     @ManyToOne(fetch = FetchType.EAGER, cascade = CascadeType.ALL)//cascade = {CascadeType.PERSIST, CascadeType.MERGE}
     private SiteModel site;
@@ -27,4 +29,6 @@ public class PageModel {
     private int code;
     @Column(name = "content", nullable = false, columnDefinition = "MEDIUMTEXT")
     private String content;
+    @OneToMany(mappedBy = "page", fetch = FetchType.LAZY, cascade = CascadeType.REMOVE, orphanRemoval = true)
+    private Set<IndexModel> indices;
 }

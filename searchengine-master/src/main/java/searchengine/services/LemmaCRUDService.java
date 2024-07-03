@@ -70,6 +70,7 @@ public class LemmaCRUDService implements CRUDService<LemmaDto> {
             log.error("Cannot find lemma with URL: " + lemmaM.getSite().getUrl());
             throw new EntityNotFoundException("Site model not found for URL: " + lemmaM.getSite().getUrl());
         }
+        lemmaM.setFrequency(1);
         log.info("Before saving lemma into method create");
         lemmaRepository.saveAndFlush(lemmaM);
     }
@@ -77,8 +78,7 @@ public class LemmaCRUDService implements CRUDService<LemmaDto> {
     @Override
     @Transactional
     public void update(LemmaDto item) {
-        //LemmaModel lemmaM = mapToModel(item);
-        //lemmaRepository.saveAndFlush(lemmaM);
+
         log.warn("Update lemma " + item.getId());
         LemmaModel existingLemma = lemmaRepository.findById(Math.toIntExact(item.getId()))
                 .orElseThrow(() -> new EntityNotFoundException("Lemma not found"));
@@ -116,7 +116,7 @@ public class LemmaCRUDService implements CRUDService<LemmaDto> {
         return dto;
     }
 
-    @Transactional
+    //@Transactional
     public LemmaModel mapToModel(LemmaDto lemmaDto) {
         LemmaModel model = new LemmaModel();
         SiteModel siteM = siteCRUDService.findByUrl(lemmaDto.getSiteUrl());
@@ -126,7 +126,7 @@ public class LemmaCRUDService implements CRUDService<LemmaDto> {
             log.info("Site repo size " + siteCRUDService.findAll().size());
             throw new EntityNotFoundException("SiteModel not found for URL: " + lemmaDto.getSiteUrl());
         }
-        model.setId(lemmaDto.getId());
+        //model.setId(lemmaDto.getId());
         model.setSite(siteM);
         model.setFrequency(lemmaDto.getFrequency());
         model.setLemma(lemmaDto.getLemma());

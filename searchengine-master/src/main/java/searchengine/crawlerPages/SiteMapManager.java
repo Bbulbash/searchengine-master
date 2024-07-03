@@ -41,7 +41,9 @@ public class SiteMapManager {
         log.info("List of url size " + listUrl.size());
         for (Site site : listUrl) {
             String url = site.getUrl();
-            log.info("Is site exist by url " + siteCRUDService.existsByUrl(url) + ". Url " + url);
+            log.info("Is site exist by url 1" + siteCRUDService.existsByUrl(url) + ". Url " + url);
+            if(siteCRUDService.existsByUrl(url)) siteCRUDService.delete(siteCRUDService.findByUrl(url).getId());
+            log.info("Is site exist by url 2" + siteCRUDService.existsByUrl(url) + ". Url " + url);
             if (!siteCRUDService.existsByUrl(url)) {
                 log.warn("Create after exist by url false. Url - " + url);
                 createSite(site);

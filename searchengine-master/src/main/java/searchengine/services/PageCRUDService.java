@@ -119,12 +119,12 @@ public class PageCRUDService implements CRUDService<PageDto> {
             log.info("Found {} indexes for page id {}", indexes.size(), id);
 
             indexes.forEach(index -> {
-                LemmaDto lemma = lemmaCRUDService.getById(Long.valueOf(index.getLemmaId()));
+                 LemmaDto lemma = lemmaCRUDService.getById(Long.valueOf(index.getLemmaId()));
                 lemma.setFrequency(lemma.getFrequency() - 1);
                 lemmaCRUDService.update(lemma);
 
-                IndexKey key = new IndexKey(index.getPageId(), index.getLemmaId());
-                indexCRUDService.delete(key);
+                //IndexKey key = new IndexKey(index.getPageId(), index.getLemmaId());
+                //indexCRUDService.delete(key);
             });
             List<IndexDto> indexForLog = indexCRUDService.getAll().stream().filter(it -> it.getPageId().equals(id)).toList();
             log.warn("indexForLog size " + indexForLog.size());

@@ -70,7 +70,7 @@ public class IndexCRUDService{
     public void delete(IndexKey key) {
         log.info("Delete index " + key);
         if (indexRepository.existsByKey(key.getPageId(), Long.parseLong(String.valueOf(key.getLemmaId())))){
-            lemmaCRUDService.delete((long) key.getLemmaId());
+          //  lemmaCRUDService.delete((long) key.getLemmaId());
             indexRepository.deleteByIndexKey(key.getPageId(), Long.parseLong(String.valueOf(key.getLemmaId())));
         }
         else throw new jakarta.persistence.EntityNotFoundException("Index not found");

@@ -14,7 +14,14 @@ import lombok.Setter;
 @NoArgsConstructor
 public class LemmaModel {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(
+            strategy = GenerationType.SEQUENCE,
+            generator = "lemma_sequence"
+    )
+    @SequenceGenerator(
+            name = "lemma_sequence",
+            allocationSize = 100
+    )
     private Long id;
     // @Column(name = "site_id", nullable = false)
     @ManyToOne(fetch = FetchType.EAGER, cascade = CascadeType.ALL, optional = true)//cascade = {CascadeType.PERSIST, CascadeType.MERGE}

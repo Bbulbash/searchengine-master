@@ -89,7 +89,8 @@ public class SiteCRUDService  {//implements CRUDService<SiteDto>
     public void delete(UUID uuid) {
         log.info("Delete site " + uuid.toString());
         if (siteRepository.existsById(uuid)) {
-            pageCRUDService.deleteBySiteUUID(uuid);
+            //pageCRUDService.deleteBySiteUUID(uuid);
+            log.warn("Delete site by id");
             siteRepository.deleteById(uuid);
         } else {
             throw new EntityNotFoundException("Site not found");

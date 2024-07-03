@@ -12,6 +12,7 @@ import org.hibernate.annotations.Type;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @Entity
@@ -38,6 +39,8 @@ public class SiteModel {
     private String url;
     @Column( name = "name", nullable = false, length = 255)
     private String name;
-    @OneToMany(mappedBy = "site", fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "site", fetch = FetchType.EAGER, cascade = CascadeType.REMOVE)
     private List<LemmaModel> lemmaModels;
+    @OneToMany(mappedBy = "site", fetch = FetchType.LAZY, cascade = CascadeType.REMOVE, orphanRemoval = true)
+    private Set<PageModel> pages;
 }

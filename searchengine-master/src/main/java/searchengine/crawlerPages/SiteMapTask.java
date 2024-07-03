@@ -6,7 +6,9 @@ import org.jsoup.Jsoup;
 
 import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
+import org.springframework.beans.factory.annotation.Autowired;
 import searchengine.dto.objects.PageDto;
+import searchengine.lemmizer.Lemmizer;
 import searchengine.model.SiteModel;
 import searchengine.repositories.SiteRepository;
 import searchengine.services.PageCRUDService;
@@ -29,6 +31,8 @@ public class SiteMapTask extends RecursiveTask<TaskResult> {
     private static final Set<String> visited = new HashSet<>();
     private PageCRUDService pageCRUDService;
     private SiteCRUDService siteCRUDService;
+    @Autowired
+    private Lemmizer lemmizer;
     public SiteMapTask(String url, int level, PageCRUDService pageCRUDService,
                        SiteCRUDService siteCRUDService) {
         this.url = url;
@@ -57,6 +61,7 @@ public class SiteMapTask extends RecursiveTask<TaskResult> {
             } catch (Exception e) {
                 System.err.println("Ошибка при обработке URL: " + e.getMessage());
             }
+            log.warn("url 1111" + url);
             String pathFromRoot = urlAsURL.getPath();
             log.info("Path from url " + pathFromRoot);
             String rootUrl = urlAsURL.getProtocol() + "://" + urlAsURL.getHost() + "/";
@@ -73,6 +78,8 @@ public class SiteMapTask extends RecursiveTask<TaskResult> {
             log.info("From site repository " + siteCRUDService.findAll().size());
             log.info("Before saving page dto object " + pageDto.getPath());
             pageCRUDService.create(pageDto);
+            //Здесь дописать индексацию новой страницы
+            lemmizer.createLemmasAndIndex(pageCRUDService.getByPathAndSitePath(pathFromRoot, rootUrl));
             log.info("After saving page dto object");
             log.info("Doc body text " + doc.body());
             List<ForkJoinTask<TaskResult>> tasks = new ArrayList<>();
