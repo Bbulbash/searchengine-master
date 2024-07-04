@@ -14,10 +14,11 @@ import lombok.Setter;
 @NoArgsConstructor
 public class LemmaModel {
     @Id
-    @GeneratedValue(
-            strategy = GenerationType.SEQUENCE,
+   /* @GeneratedValue(
+            strategy = GenerationType.SEQ,
             generator = "lemma_sequence"
-    )
+    )*/
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @SequenceGenerator(
             name = "lemma_sequence",
             allocationSize = 100

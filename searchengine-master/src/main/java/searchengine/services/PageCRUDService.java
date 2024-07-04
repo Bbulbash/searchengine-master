@@ -7,6 +7,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
+import searchengine.config.Site;
+import searchengine.config.SitesList;
 import searchengine.dto.objects.IndexDto;
 import searchengine.dto.objects.LemmaDto;
 import searchengine.dto.objects.PageDto;
@@ -18,6 +20,7 @@ import javax.persistence.EntityNotFoundException;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Slf4j
 @Service
@@ -32,6 +35,8 @@ public class PageCRUDService implements CRUDService<PageDto> {
     private IndexCRUDService indexCRUDService;
     @Autowired
     private LemmaCRUDService lemmaCRUDService;
+    @Autowired
+    private SitesList siteList;
 
     @Transactional
     @Override
@@ -87,6 +92,10 @@ public class PageCRUDService implements CRUDService<PageDto> {
             log.warn("optionalModel.isPresent()");
         } else {
             log.warn("Don`t present");
+            Site site =  siteList.getSites().stream().filter(it -> it.getUrl().equals(pageM.getSite().getUrl())).findFirst().get();
+            //if(site.)
+            SiteDto dto = siteCRUDService.generateSiteDto(site);
+            siteCRUDService.create(dto);
         }
 
         if (siteM != null) {

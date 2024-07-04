@@ -73,6 +73,36 @@ public class PageIndexer {
             }
         }
     }
+    public void indexPageForSites(String url){
+        if (isIndexingAllow(url)) {
+            String hostName = getHostName(getUrl(url));
+            log.info("Is site exist before delete page " + siteCRUDService.existsByUrl(hostName));
+            //deleteIfPageExist(url);
+            deleteIfSiteExist(hostName);
+
+            createSite(hostName);
+            try {
+                //errorMessage = null;
+                siteMapManager.setIndexingActive(true);
+                log.info("Before initialization pageDto");
+                PageDto pageDto = initializationPageDto(url);
+                pageCRUDService.create(pageDto);
+                PageDto newPage = pageCRUDService.getByPathAndSitePath(pageDto.getPath(), pageDto.getSite());// Новая ошибка тут
+                lemmizer.createLemmasAndIndex(newPage);
+                log.info("After saving page dto object");
+                siteMapManager.setIndexingActive(false);
+                //updateSiteStatus(hostName, errorMessage, Status.INDEXED);
+            } catch (Exception e) {
+                success = false;
+                errorMessage = e.getMessage();
+                updateSiteStatus(hostName, errorMessage, Status.FAILED);
+                System.out.println("-----------1--------");
+                System.out.println("Ошбика при обработке URL: " + hostName + " " + e.getMessage());
+                System.out.println("-----------------------");
+                System.out.println(e.getStackTrace());
+            }
+        }
+    }
 
     //@Transactional
     private void deleteIfPageExist(String urlS) {//Ошибка из-за того что передается хост, а не полный url

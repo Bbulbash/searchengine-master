@@ -6,6 +6,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import searchengine.config.Site;
+import searchengine.dto.objects.PageDto;
 import searchengine.dto.objects.SiteDto;
 import searchengine.model.SiteModel;
 import searchengine.model.Status;
@@ -74,7 +76,7 @@ public class SiteCRUDService  {//implements CRUDService<SiteDto>
     public void create(SiteDto siteDto) {
         SiteModel siteM = mapToModel(siteDto);
         siteM.setStatus(Status.INDEXING);
-        log.info("From site CRUD service. Site status = " + siteM.getStatus());
+       // log.info("From site CRUD service. Site status = " + siteM.getStatus());
         siteM.setStatusTime(LocalDateTime.now());
         siteM.setUrl(siteDto.getUrl());
         //siteRepository.saveAndFlush(siteM);
@@ -153,5 +155,11 @@ public class SiteCRUDService  {//implements CRUDService<SiteDto>
         model.setStatusTime(LocalDateTime.parse(dto.getStatusTime()));
         model.setLastError(dto.getLastError());
         return model;
+    }
+    public SiteDto generateSiteDto(Site site){
+        SiteDto dto = new SiteDto();
+        dto.setUrl(site.getUrl());
+        dto.setName(site.getName());
+        return dto;
     }
 }
