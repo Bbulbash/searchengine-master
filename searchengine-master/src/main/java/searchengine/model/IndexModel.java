@@ -19,7 +19,7 @@ public class IndexModel {
 
     @EmbeddedId
     private IndexKey key;
-    @ManyToOne(fetch = FetchType.EAGER,  cascade = CascadeType.ALL) //{CascadeType.MERGE, CascadeType.PERSIST})//Ошибка из-за onetoone
+    @ManyToOne(fetch = FetchType.LAZY) //{CascadeType.MERGE, CascadeType.PERSIST})//Ошибка из-за onetoone
     @JoinColumn(name = "page_id", nullable = false)
     @MapsId("pageId")
     private PageModel page;

@@ -31,14 +31,14 @@ public class SiteMapTask extends RecursiveTask<TaskResult> {
     private static final Set<String> visited = new HashSet<>();
     private PageCRUDService pageCRUDService;
     private SiteCRUDService siteCRUDService;
-    @Autowired
     private Lemmizer lemmizer;
     public SiteMapTask(String url, int level, PageCRUDService pageCRUDService,
-                       SiteCRUDService siteCRUDService) {
+                       SiteCRUDService siteCRUDService, Lemmizer lemmizer) {
         this.url = url;
         this.level = level;
         this.pageCRUDService = pageCRUDService;
         this.siteCRUDService = siteCRUDService;
+        this.lemmizer = lemmizer;
 
     }
 
@@ -68,15 +68,16 @@ public class SiteMapTask extends RecursiveTask<TaskResult> {
             log.info("Root url " + rootUrl);
             Boolean isServiceEmpty = pageCRUDService.getAll().isEmpty();
             log.info(" Is page crud service is empty " + isServiceEmpty);
-            Long idPage = (isServiceEmpty) ? 1L : Long.parseLong(String.valueOf(pageCRUDService.getAll().size())) + 1L;
+            // Long idPage = (isServiceEmpty) ? 1L : Long.parseLong(String.valueOf(pageCRUDService.getAll().size())) + 1L;
             PageDto pageDto = new PageDto();
-            pageDto.setId(idPage);
+           // pageDto.setId(idPage);
             pageDto.setSite(rootUrl);//Корневой url
             pageDto.setCode(response.statusCode());
             pageDto.setContent(doc.body().text());
             pageDto.setPath(pathFromRoot);
-            log.info("From site repository " + siteCRUDService.findAll().size());
+           // log.info("From site repository " + siteCRUDService.findAll().size());
             log.info("Before saving page dto object " + pageDto.getPath());
+
             pageCRUDService.create(pageDto);
             //Здесь дописать индексацию новой страницы
             lemmizer.createLemmasAndIndex(pageCRUDService.getByPathAndSitePath(pathFromRoot, rootUrl));
@@ -87,7 +88,7 @@ public class SiteMapTask extends RecursiveTask<TaskResult> {
             links.stream().forEach(link -> {
                 String absUrl = link.absUrl("href");
                 if (isValidUrl(url, absUrl)) {
-                    SiteMapTask task = new SiteMapTask(absUrl, level + 1, pageCRUDService, siteCRUDService);
+                    SiteMapTask task = new SiteMapTask(absUrl, level + 1, pageCRUDService, siteCRUDService, lemmizer);
                     tasks.add(task.fork());
                 }
             });
@@ -97,7 +98,9 @@ public class SiteMapTask extends RecursiveTask<TaskResult> {
         } catch (Exception e) {
             success = false;
             errorMessage = e.getMessage();
-            System.err.println("Ошбика при обработке URL: " + url + " " + e.getMessage());
+            log.info("some log 1");
+            System.err.println("Ошибка при обработке URL: " + url + " " + e.getMessage());
+            log.info("some log 2");
         }
         return new TaskResult(success, errorMessage);
     }

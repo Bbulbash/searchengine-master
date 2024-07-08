@@ -20,7 +20,6 @@ import javax.persistence.EntityNotFoundException;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @Slf4j
 @Service
@@ -80,14 +79,14 @@ public class PageCRUDService implements CRUDService<PageDto> {
 
     @Transactional
     @Override
-    public void create(PageDto item) {
+    public void create(PageDto item) throws Exception {
         PageModel pageM = mapToModel(item);
 
         log.warn("From page CRUD Service. Page model get site url == " + pageM.getSite().getUrl());
         SiteModel siteM = siteCRUDService.findByUrl(pageM.getSite().getUrl());
         Optional<PageModel> optionalModel = pageRepository.findByPathAndSiteUrl(pageM.getPath(), siteM.getUrl()).stream().findFirst();
 
-        if (optionalModel.isPresent()) {
+        if (!List.of(siteM).isEmpty()) {
             //delete(optionalModel.get().getId());
             log.warn("optionalModel.isPresent()");
         } else {

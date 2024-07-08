@@ -48,7 +48,7 @@ public class SiteCRUDService  {//implements CRUDService<SiteDto>
 
     @Transactional(rollbackFor = {RuntimeException.class, EntityNotFoundException.class, Exception.class})
    // @Override
-    public void update(SiteDto item) {
+    public void update(SiteDto item)  {
         //Optional<SiteModel> optionalSiteModel = siteRepository.findById(Math.toIntExact(item.getId()));
        // Integer siteRepoSize = siteRepository.findAll().size();
         String itemUrl = item.getUrl();
@@ -67,6 +67,7 @@ public class SiteCRUDService  {//implements CRUDService<SiteDto>
                 siteRepository.saveAndFlush(existingSiteM);
             }catch (Exception ex){
                 log.warn("Exception in update site " + ex.getMessage());
+                //throw new Exception("Trables with site update " + existingSiteM.getUrl() + ". Error message " + ex.getMessage());
             }
         }
     }
@@ -80,7 +81,7 @@ public class SiteCRUDService  {//implements CRUDService<SiteDto>
         siteM.setStatusTime(LocalDateTime.now());
         siteM.setUrl(siteDto.getUrl());
         //siteRepository.saveAndFlush(siteM);
-        siteRepository.save(siteM);
+        siteRepository.saveAndFlush(siteM);
         log.info("Site " + siteM.getUrl() + " was saved");
         log.info("Repository size after creating site " + siteRepository.findAll().size());
 

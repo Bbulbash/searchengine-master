@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import searchengine.config.Site;
 import searchengine.config.SitesList;
 import searchengine.dto.objects.SiteDto;
+import searchengine.lemmizer.Lemmizer;
 import searchengine.model.SiteModel;
 import searchengine.model.Status;
 import searchengine.repositories.SiteRepository;
@@ -31,10 +32,13 @@ public class SiteMapManager {
     private SiteCRUDService siteCRUDService;
     @Autowired
     private PageCRUDService pageCRUDService;
+    @Autowired
+    private Lemmizer lemmizer;
     public volatile boolean isIndexingActive = false;
     ForkJoinPool pool = new ForkJoinPool();
 
     public void start() throws Exception {
+        Long start = System.currentTimeMillis();
         isIndexingActive = true;
         List<Site> listUrl;
         listUrl = sitesList.getSites();
@@ -50,11 +54,12 @@ public class SiteMapManager {
                 log.warn("After creating site. Repository size " + siteCRUDService.getAll().size());
             }
             log.info("Url from site map manager " + url);
-            SiteMapTask task = new SiteMapTask(url, 0, pageCRUDService, siteCRUDService);
+            SiteMapTask task = new SiteMapTask(url, 0, pageCRUDService, siteCRUDService, lemmizer);
             TaskResult taskResult = pool.invoke(task);
             updateSiteStatus(url, taskResult);
         }
         isIndexingActive = false;
+        System.err.println("Start time - finish time = " + (System.currentTimeMillis() - start));
     }
 
     private void createSite(Site site) {
@@ -69,14 +74,7 @@ public class SiteMapManager {
         siteCRUDService.create(siteDto);
     }
 
-    private Long getNewSiteId() {
-        if (siteCRUDService.count() == 0) {
-            return 1L;
-        }
-        return siteCRUDService.count() + 1L;
-    }
-
-    private void updateSiteStatus(String url, TaskResult taskResult) {
+    private void updateSiteStatus(String url, TaskResult taskResult) throws Exception {
         SiteModel model = siteCRUDService.findByUrl(url);
         Boolean success = taskResult.getSuccess();
         String errorMessage = taskResult.getErrorMessage();
@@ -87,16 +85,20 @@ public class SiteMapManager {
         }
         model.setLastError(errorMessage);
         model.setStatusTime(LocalDateTime.now());
-        siteCRUDService.update(SiteCRUDService.mapToDto(model));
+        try {
+            siteCRUDService.update(SiteCRUDService.mapToDto(model));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
-    public void stopIndexing() {
+    public void stopIndexing(){
         pool.shutdownNow();
         updateStatusAfterStop();
         isIndexingActive = false;
     }
 
-    private void updateStatusAfterStop() {
+    private void updateStatusAfterStop(){
         List<SiteModel> listModel = siteCRUDService.findAllByStatus(Status.INDEXING.name());
         for (SiteModel model : listModel) {
             model.setStatus(Status.FAILED);

@@ -21,9 +21,5 @@ spring:
 
 indexing-settings:
   sites:
-    - url:  http://www.playback.ru/
-      name: Playback
-    - url:  https://ipfran.ru/
-      name: Ipfran
     - url: https://nikoartgallery.com/
       name: Gallery

@@ -5,7 +5,6 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.Set;
 
@@ -29,6 +28,7 @@ public class PageModel {
     private int code;
     @Column(name = "content", nullable = false, columnDefinition = "MEDIUMTEXT")
     private String content;
-    @OneToMany(mappedBy = "page", fetch = FetchType.LAZY, cascade = CascadeType.REMOVE, orphanRemoval = true)
-    private Set<IndexModel> indices;
+    @OneToMany(mappedBy = "page", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<IndexModel> indexes;
 }
+

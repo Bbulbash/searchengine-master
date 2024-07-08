@@ -15,10 +15,7 @@ import searchengine.model.PageModel;
 import searchengine.repositories.IndexRepository;
 
 import javax.persistence.EntityNotFoundException;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -52,6 +49,13 @@ public class IndexCRUDService{
     public void create(IndexDto item) {
         IndexModel indexM = mapToModel(item);
         indexRepository.saveAndFlush(indexM);
+    }
+    public void createAll(HashSet<IndexDto> indexDtoSet){
+        HashSet<IndexModel> models = new HashSet<>();
+        for(IndexDto index : indexDtoSet){
+            models.add(mapToModel(index));
+        }
+        indexRepository.saveAllAndFlush(models);
     }
 
     //@Override

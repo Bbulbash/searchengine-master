@@ -7,7 +7,7 @@ public interface CRUDService<T> {
 
     Collection<T> getAll();
 
-    void create(T item);
+    void create(T item) throws Exception;
 
     void update(T item);
 

@@ -29,7 +29,7 @@ public class IndexingService {
             }
         }
     }
-    @Transactional
+    //@Transactional
     public void createSitesMaps() throws Exception {
         deleteSitesData();
         siteMapManager.start();
@@ -40,7 +40,7 @@ public class IndexingService {
     }
 
     @Transactional
-    public void stopIndexing() {
+    public void stopIndexing(){
         siteMapManager.stopIndexing();
     }
     @Transactional

@@ -1,5 +1,6 @@
 package searchengine.lemmizer;
 
+import jakarta.persistence.EntityNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.lucene.morphology.LuceneMorphology;
 import org.apache.lucene.morphology.russian.RussianLuceneMorphology;
@@ -7,6 +8,7 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import searchengine.dto.objects.IndexData;
 import searchengine.dto.objects.IndexDto;
 import searchengine.dto.objects.LemmaDto;
 import searchengine.dto.objects.PageDto;
@@ -34,27 +36,122 @@ public class Lemmizer {
         log.info("Page dto path " + pageDto.getPath());
         Map<String, Integer> lemmaCountMap = getLemmasList(pageDto.getContent());
         log.info("Lemma count map " + lemmaCountMap.isEmpty());
+        HashSet<IndexData> indexData = new HashSet<>();
+        HashSet<LemmaDto> lemmaForUpdate = new HashSet<>();
+        //HashMap<String, String> lemmaForCreate = new HashMap<>();//siteUrl : lemmaName
+        Set<Map.Entry<String, String>> lemmaForCreate = new HashSet<>();
+        UUID siteId = UUID.fromString(siteCRUDService.getByUrl(pageDto.getSite()).getId());
         for (String lemmaName : lemmaCountMap.keySet()) {
             LemmaDto lemmaDto = lemmaCRUDService
                     .getByLemmaAndSiteId(lemmaName,
-                            UUID.fromString(siteCRUDService.getByUrl(pageDto.getSite()).getId()));// Что-то ломается здесь
+                            siteId);// Что-то ломается здесь
+            //log.info("Lemma repo size from lemmizer " + lemmaCRUDService.getAll().size());
             if (lemmaDto == null) {
-                log.info("Creating lemma ");
-                lemmaDto = createLemma(pageDto.getSite(), lemmaName);
-            }else{
+                //lemmaForCreate.put(pageDto.getSite().toString(), lemmaName.toString());
+                lemmaForCreate.add(new AbstractMap.SimpleEntry<>(pageDto.getSite(), lemmaName));
+            } else {
                 lemmaDto.setFrequency(lemmaDto.getFrequency() + 1);
-                lemmaCRUDService.update(lemmaDto);
+                lemmaForUpdate.add(lemmaDto);
             }
-            createIndex(lemmaCountMap.get(lemmaName), pageId, lemmaDto);
+            LemmaDto dto = new LemmaDto();
+            dto.setLemma(lemmaName);
+            indexData.add(new IndexData(lemmaCountMap.get(lemmaName), pageId, dto));
         }
+        HashSet<LemmaDto> updateLemmas = updateLemmas(lemmaForUpdate);
+        HashSet<LemmaDto> lemmaDtos = waitForLemmaCreation(lemmaForCreate);// Все леммы с id возвращаются
+        for (IndexData data : indexData) {
+            log.info("Data index data before setting lemmaDto " + data.getLemmaDto().getLemma());
+            Optional<LemmaDto> optionalLemmaDto = lemmaDtos.stream().filter(it -> it.getLemma().equals(data.getLemmaDto().getLemma())).findFirst();
+
+            if (optionalLemmaDto.isPresent() && optionalLemmaDto.get().getId() != null) {
+                data.setLemmaDto(optionalLemmaDto.get());
+                log.info("Data index data after setting lemmaDto " + data.getLemmaDto().getLemma());
+            } else {
+                optionalLemmaDto = updateLemmas.stream().filter(it -> it.getLemma().equals(data.getLemmaDto().getLemma())).findFirst();
+                if (optionalLemmaDto.isPresent() && optionalLemmaDto.get().getId() != null) {
+                   data.setLemmaDto(optionalLemmaDto.get());
+                } else {
+                    log.info("No LemmaDto found for lemma: " + data.getLemmaDto().getLemma());
+                    LemmaDto dto = lemmaCRUDService.getByLemmaAndSiteId(data.getLemmaDto().getLemma(), siteId);
+                    data.setLemmaDto(dto);
+                    if(dto.getId() == null){
+                        throw new EntityNotFoundException("Lemma dto not found");
+                    }
+                }
+            }
+        }
+        //lemmaDtos = waitForLemmaCreation(lemmaForCreate);
+
+        createIndex(indexData);
 
     }
-    private void createIndex(int rankValue, Long pageId, LemmaDto limmaDto){
-        IndexDto dto = new IndexDto();
-        dto.setLemmaId(Math.toIntExact(limmaDto.getId()));
-        dto.setPageId(pageId);// Почему-то pageId null
-        dto.setRankValue(rankValue);
-        indexCRUDService.create(dto);// Появляется записть о создании второй страницы
+
+    private HashSet<LemmaDto> createLemmas(Set<Map.Entry<String, String>> lemmaForCreate) {
+        HashSet<LemmaDto> lemmaDtos = new HashSet<>();
+        for (Map.Entry<String, String> entry : lemmaForCreate) {
+            String key = entry.getKey();
+            String value = entry.getValue();
+            if (value == null || key == null) {
+                log.error("ID of Lemma is null for lemma: ");
+                continue;
+            }
+            LemmaDto lemmaDto = new LemmaDto();
+            lemmaDto.setLemma(value);
+            lemmaDto.setFrequency(1);
+            lemmaDto.setSiteUrl(key);
+
+            lemmaDtos.add(lemmaDto);
+        }
+        HashSet<LemmaDto> createdLemmas = lemmaCRUDService.createAll(lemmaDtos);
+
+        for (LemmaDto lemma : createdLemmas) {
+            if (lemma.getId() == null) {
+                log.error("Failed to create lemma properly, lemma.id is null for " + lemma.getLemma());
+            }
+        }
+
+        return createdLemmas;
+    }
+
+    private HashSet<LemmaDto> waitForLemmaCreation(Set<Map.Entry<String, String>> lemmaForCreate) {
+        HashSet<LemmaDto> createdLemmas = new HashSet<>();
+        boolean allLemmasCreated = false;
+
+        while (!allLemmasCreated) {
+            createdLemmas = createLemmas(lemmaForCreate);
+            allLemmasCreated = createdLemmas.size() == lemmaForCreate.size();
+
+            if (!allLemmasCreated) {
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+                    log.error("Interrupted while waiting for lemma creation", e);
+                    Thread.currentThread().interrupt(); // восстанавливаем статус прерывания
+                }
+            }
+        }
+
+        return createdLemmas;
+    }
+
+    private HashSet<LemmaDto> updateLemmas(HashSet<LemmaDto> lemmaForUpdate) {
+        return lemmaCRUDService.updateAll(lemmaForUpdate);
+    }
+
+    private void createIndex(HashSet<IndexData> indexData) {// метод должен преобразовать в HashSet<IndexDto>
+        HashSet<IndexDto> dtos = new HashSet<>();
+        for (IndexData data : indexData) {
+            IndexDto dto = new IndexDto();
+            dto.setPageId(data.getPageId());
+            if (data.getLemmaDto().getId() == null) {
+                log.info("Lemma id почему-то null");// Все леммы приходят без id
+                throw new EntityNotFoundException("ID LemmaDto is null");
+            }
+            dto.setLemmaId(Math.toIntExact(data.getLemmaDto().getId()));
+            dto.setRankValue(data.getLemmaCount());
+            dtos.add(dto);
+        }
+        indexCRUDService.createAll(dtos);
     }
 
     private LemmaDto createLemma(String siteUrl, String lemmaName) {
@@ -62,7 +159,8 @@ public class Lemmizer {
         dto.setSiteUrl(siteUrl);
         dto.setLemma(lemmaName);
         lemmaCRUDService.create(dto);
-        LemmaDto dtoForReturn = lemmaCRUDService.getByLemmaAndSiteId(lemmaName, siteCRUDService.findByUrl(siteUrl).getId());
+        UUID siteId = siteCRUDService.findByUrl(siteUrl).getId();
+        LemmaDto dtoForReturn = lemmaCRUDService.getByLemmaAndSiteId(lemmaName, siteId);
         return dtoForReturn;
     }
 
@@ -83,7 +181,7 @@ public class Lemmizer {
         return lemmaCountMap;
     }
 
-    private List<String> getTextAsList(String text) throws IOException {
+    /*private List<String> getTextAsList(String text) throws IOException {
         String regex = "[^а-яА-Я ]";
         String regex1 = "[ ]{2,}";
 
@@ -99,6 +197,43 @@ public class Lemmizer {
             log.info("Word with info " + wordWithInfo);
             if (!lowerCaseWord.isEmpty() && !hasParticleProperty(wordWithInfo)) {
                 words.add(lowerCaseWord);
+            }
+        }
+        return words;
+    }*/
+    public List<String> getTextAsList(String text) throws IOException {
+        String regex = "[^а-яА-Я -]";
+        String regex1 = "[ ]{2,}";
+
+        String cleanText0 = text.replaceAll(regex, "");
+        String cleanText1 = cleanText0.replaceAll(regex1, " ");
+        log.info("Clean text: " + cleanText1);
+
+        LuceneMorphology luceneMorphology = new RussianLuceneMorphology();
+        List<String> words = new ArrayList<>();
+
+        for (String word : cleanText1.split(" ")) {
+            if (word == null || word.isEmpty()) continue;
+            log.info("Get Text as List word: " + word);
+
+            String lowerCaseWord = word.toLowerCase();
+            log.info("Lower case word: " + lowerCaseWord);
+
+            try {
+                List<String> morphInfoList = luceneMorphology.getMorphInfo(lowerCaseWord);
+                if (morphInfoList == null || morphInfoList.isEmpty()) {
+                    log.warn("Morph info list is null or empty for word: " + lowerCaseWord);
+                    continue;
+                }
+
+                String wordWithInfo = morphInfoList.toString();
+                log.info("Word with info: " + wordWithInfo);
+
+                if (!hasParticleProperty(wordWithInfo)) {
+                    words.add(lowerCaseWord);
+                }
+            } catch (Exception e) {
+                log.error("Error processing word: " + lowerCaseWord, e);
             }
         }
         return words;
