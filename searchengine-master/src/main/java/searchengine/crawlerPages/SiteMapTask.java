@@ -14,31 +14,38 @@ import searchengine.repositories.SiteRepository;
 import searchengine.services.PageCRUDService;
 import searchengine.services.SiteCRUDService;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.RecursiveTask;
 import java.util.concurrent.ForkJoinTask;
-import java.util.HashSet;
-import java.util.Set;
 import java.net.URL;
 
 @Slf4j
 //@Service
 public class SiteMapTask extends RecursiveTask<TaskResult> {
+    private static final Object lock = new Object();
     private static final String USER_AGENT = "SEARCH_BOT";
     private final String url;
     private final int level;
-    private static final Set<String> visited = new HashSet<>();
+    protected static Set<String> visited; //= new ConcurrentHashMap<>();
+    private static final Map<String, Set<String>> siteVisitedMap = new ConcurrentHashMap<>();
     private PageCRUDService pageCRUDService;
     private SiteCRUDService siteCRUDService;
     private Lemmizer lemmizer;
+    private final String siteId;
+
     public SiteMapTask(String url, int level, PageCRUDService pageCRUDService,
-                       SiteCRUDService siteCRUDService, Lemmizer lemmizer) {
+                       SiteCRUDService siteCRUDService, Lemmizer lemmizer, String siteId) {
         this.url = url;
         this.level = level;
         this.pageCRUDService = pageCRUDService;
         this.siteCRUDService = siteCRUDService;
         this.lemmizer = lemmizer;
+        this.siteId = siteId;
+        synchronized (lock) {
+            siteVisitedMap.putIfAbsent(siteId, ConcurrentHashMap.newKeySet());
+        }
+        this.visited = siteVisitedMap.get(siteId);
 
     }
 
@@ -46,7 +53,7 @@ public class SiteMapTask extends RecursiveTask<TaskResult> {
     protected TaskResult compute() {
         synchronized (visited) {
             if (!visited.add(url)) {
-                return null;
+                return new TaskResult(true, "URL already visited");
             }
         }
         Boolean success = true;
@@ -66,29 +73,27 @@ public class SiteMapTask extends RecursiveTask<TaskResult> {
             log.info("Path from url " + pathFromRoot);
             String rootUrl = urlAsURL.getProtocol() + "://" + urlAsURL.getHost() + "/";
             log.info("Root url " + rootUrl);
-            Boolean isServiceEmpty = pageCRUDService.getAll().isEmpty();
-            log.info(" Is page crud service is empty " + isServiceEmpty);
-            // Long idPage = (isServiceEmpty) ? 1L : Long.parseLong(String.valueOf(pageCRUDService.getAll().size())) + 1L;
             PageDto pageDto = new PageDto();
-           // pageDto.setId(idPage);
             pageDto.setSite(rootUrl);//Корневой url
             pageDto.setCode(response.statusCode());
             pageDto.setContent(doc.body().text());
             pageDto.setPath(pathFromRoot);
-           // log.info("From site repository " + siteCRUDService.findAll().size());
             log.info("Before saving page dto object " + pageDto.getPath());
-
-            pageCRUDService.create(pageDto);
-            //Здесь дописать индексацию новой страницы
-            lemmizer.createLemmasAndIndex(pageCRUDService.getByPathAndSitePath(pathFromRoot, rootUrl));
-            log.info("After saving page dto object");
-            log.info("Doc body text " + doc.body());
+            //pageCRUDService.create(pageDto);
+            synchronized (pageCRUDService) {
+                if (!pageCRUDService.isPageExists(pathFromRoot, siteId)) {
+                    pageCRUDService.create(pageDto);
+                    lemmizer.createLemmasAndIndex(pageCRUDService.getByPathAndSitePath(pathFromRoot, rootUrl));
+                }
+            }
+            //lemmizer.createLemmasAndIndex(pageCRUDService.getByPathAndSitePath(pathFromRoot, rootUrl));
             List<ForkJoinTask<TaskResult>> tasks = new ArrayList<>();
             Elements links = doc.select("a[href]");
             links.stream().forEach(link -> {
                 String absUrl = link.absUrl("href");
                 if (isValidUrl(url, absUrl)) {
-                    SiteMapTask task = new SiteMapTask(absUrl, level + 1, pageCRUDService, siteCRUDService, lemmizer);
+                    SiteMapTask task =
+                            new SiteMapTask(absUrl, level + 1, pageCRUDService, siteCRUDService, lemmizer, siteId);
                     tasks.add(task.fork());
                 }
             });

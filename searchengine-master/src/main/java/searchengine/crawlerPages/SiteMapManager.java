@@ -19,7 +19,9 @@ import searchengine.services.SiteCRUDService;
 import javax.persistence.EntityNotFoundException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ForkJoinPool;
 
 @Service
@@ -45,16 +47,19 @@ public class SiteMapManager {
         log.info("List of url size " + listUrl.size());
         for (Site site : listUrl) {
             String url = site.getUrl();
+            String siteId = null;
             log.info("Is site exist by url 1" + siteCRUDService.existsByUrl(url) + ". Url " + url);
             if(siteCRUDService.existsByUrl(url)) siteCRUDService.delete(siteCRUDService.findByUrl(url).getId());
             log.info("Is site exist by url 2" + siteCRUDService.existsByUrl(url) + ". Url " + url);
             if (!siteCRUDService.existsByUrl(url)) {
                 log.warn("Create after exist by url false. Url - " + url);
-                createSite(site);
+                SiteDto siteDto = createSite(site);
+                siteId = siteDto.getId();
                 log.warn("After creating site. Repository size " + siteCRUDService.getAll().size());
             }
+            
             log.info("Url from site map manager " + url);
-            SiteMapTask task = new SiteMapTask(url, 0, pageCRUDService, siteCRUDService, lemmizer);
+            SiteMapTask task = new SiteMapTask(url, 0, pageCRUDService, siteCRUDService, lemmizer, siteId);
             TaskResult taskResult = pool.invoke(task);
             updateSiteStatus(url, taskResult);
         }
@@ -62,7 +67,7 @@ public class SiteMapManager {
         System.err.println("Start time - finish time = " + (System.currentTimeMillis() - start));
     }
 
-    private void createSite(Site site) {
+    private SiteDto createSite(Site site) {
         //Long siteId = getNewSiteId();
         SiteDto siteDto = new SiteDto();
         //siteDto.setId(siteId);
@@ -71,7 +76,7 @@ public class SiteMapManager {
         siteDto.setUrl(site.getUrl());
         siteDto.setStatus(Status.INDEXING.name());
         log.info("Url of new site " + site.getUrl());
-        siteCRUDService.create(siteDto);
+        return siteCRUDService.create(siteDto);
     }
 
     private void updateSiteStatus(String url, TaskResult taskResult) throws Exception {
@@ -111,4 +116,5 @@ public class SiteMapManager {
     public boolean isIndexingActive() {
         return isIndexingActive;
     }
+
 }

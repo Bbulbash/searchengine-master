@@ -7,7 +7,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import searchengine.config.Site;
-import searchengine.dto.objects.PageDto;
 import searchengine.dto.objects.SiteDto;
 import searchengine.model.SiteModel;
 import searchengine.model.Status;
@@ -74,17 +73,14 @@ public class SiteCRUDService  {//implements CRUDService<SiteDto>
 
     @Transactional
     //@Override
-    public void create(SiteDto siteDto) {
+    public SiteDto create(SiteDto siteDto) {
         SiteModel siteM = mapToModel(siteDto);
         siteM.setStatus(Status.INDEXING);
        // log.info("From site CRUD service. Site status = " + siteM.getStatus());
         siteM.setStatusTime(LocalDateTime.now());
         siteM.setUrl(siteDto.getUrl());
         //siteRepository.saveAndFlush(siteM);
-        siteRepository.saveAndFlush(siteM);
-        log.info("Site " + siteM.getUrl() + " was saved");
-        log.info("Repository size after creating site " + siteRepository.findAll().size());
-
+        return mapToDto(siteRepository.saveAndFlush(siteM));
     }
 
     @Transactional

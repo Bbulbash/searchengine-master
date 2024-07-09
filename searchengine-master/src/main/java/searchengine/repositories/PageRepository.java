@@ -12,4 +12,5 @@ public interface PageRepository extends JpaRepository<PageModel, Integer> {
     List<PageModel> findByPathAndSiteUrl(String url, String sitePath);
     List<PageModel> findAllBySiteId(UUID uuid);
     void deleteById(Long id);
+    Boolean existsByPathAndSiteId(String path, UUID siteId);
 }

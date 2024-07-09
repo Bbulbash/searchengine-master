@@ -191,6 +191,10 @@ public class PageCRUDService implements CRUDService<PageDto> {
 
         return pageM;
     }
+    @Transactional
+    public Boolean isPageExists(String path, String uuid){
+        return pageRepository.existsByPathAndSiteId(path, UUID.fromString(uuid));
+    }
 
     //@Transactional
     public void deleteBySiteUUID(UUID uuid) {
