@@ -37,7 +37,7 @@ public class SiteMapManager {
     @Autowired
     private Lemmizer lemmizer;
     public volatile boolean isIndexingActive = false;
-    ForkJoinPool pool = new ForkJoinPool();
+    ForkJoinPool pool = new ForkJoinPool(Runtime.getRuntime().availableProcessors());
 
     public void start() throws Exception {
         Long start = System.currentTimeMillis();
@@ -45,19 +45,16 @@ public class SiteMapManager {
         List<Site> listUrl;
         listUrl = sitesList.getSites();
         log.info("List of url size " + listUrl.size());
+        siteCRUDService.deleteAll();
         for (Site site : listUrl) {
             String url = site.getUrl();
             String siteId = null;
-            log.info("Is site exist by url 1" + siteCRUDService.existsByUrl(url) + ". Url " + url);
-            if(siteCRUDService.existsByUrl(url)) siteCRUDService.delete(siteCRUDService.findByUrl(url).getId());
-            log.info("Is site exist by url 2" + siteCRUDService.existsByUrl(url) + ". Url " + url);
             if (!siteCRUDService.existsByUrl(url)) {
                 log.warn("Create after exist by url false. Url - " + url);
                 SiteDto siteDto = createSite(site);
                 siteId = siteDto.getId();
                 log.warn("After creating site. Repository size " + siteCRUDService.getAll().size());
             }
-            
             log.info("Url from site map manager " + url);
             SiteMapTask task = new SiteMapTask(url, 0, pageCRUDService, siteCRUDService, lemmizer, siteId);
             TaskResult taskResult = pool.invoke(task);

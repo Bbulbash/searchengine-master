@@ -127,7 +127,7 @@ public class PageCRUDService implements CRUDService<PageDto> {
             log.info("Found {} indexes for page id {}", indexes.size(), id);
 
             indexes.forEach(index -> {
-                 LemmaDto lemma = lemmaCRUDService.getById(Long.valueOf(index.getLemmaId()));
+                LemmaDto lemma = lemmaCRUDService.getById(Long.valueOf(index.getLemmaId()));
                 lemma.setFrequency(lemma.getFrequency() - 1);
                 lemmaCRUDService.update(lemma);
 

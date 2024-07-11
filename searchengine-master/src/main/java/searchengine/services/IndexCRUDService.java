@@ -50,6 +50,7 @@ public class IndexCRUDService{
         IndexModel indexM = mapToModel(item);
         indexRepository.saveAndFlush(indexM);
     }
+    @Transactional
     public void createAll(HashSet<IndexDto> indexDtoSet){
         HashSet<IndexModel> models = new HashSet<>();
         for(IndexDto index : indexDtoSet){
@@ -67,9 +68,6 @@ public class IndexCRUDService{
         indexRepository.saveAndFlush(indexModel);
     }
 
-
-
-    //@Override
     @Transactional
     public void delete(IndexKey key) {
         log.info("Delete index " + key);
@@ -121,9 +119,6 @@ public class IndexCRUDService{
         for(IndexModel model : models){
             log.info("Index model page before delete " + model.getKey().getPageId());
             log.info("Lemma id " + model.getKey().getLemmaId());
-            //log.info("Index model site " + model.getKey().get);
-            //List<LemmaModel> lemmas = lemmaCRUDService.getLemmasByPage(model.getPage().getId());
-            //lemmas.stream().forEach(it -> lemmaCRUDService.delete(it.getId()));
             indexRepository.delete(model);
         }
     }

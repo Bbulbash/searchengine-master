@@ -45,7 +45,7 @@ public class Lemmizer {
             LemmaDto lemmaDto = lemmaCRUDService
                     .getByLemmaAndSiteId(lemmaName,
                             siteId);// Что-то ломается здесь
-            //log.info("Lemma repo size from lemmizer " + lemmaCRUDService.getAll().size());
+
             if (lemmaDto == null) {
                 //lemmaForCreate.put(pageDto.getSite().toString(), lemmaName.toString());
                 lemmaForCreate.add(new AbstractMap.SimpleEntry<>(pageDto.getSite(), lemmaName));

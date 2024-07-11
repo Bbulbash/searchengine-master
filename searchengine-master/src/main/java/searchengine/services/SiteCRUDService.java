@@ -96,6 +96,14 @@ public class SiteCRUDService  {//implements CRUDService<SiteDto>
         }
     }
     @Transactional
+    public void deleteAll() throws Exception {
+        try{
+            siteRepository.deleteAll();
+        }catch (Exception ex){
+            throw new Exception("Problems with deleting all site");
+        }
+    }
+    @Transactional
     public SiteModel findByUrl(String url){
         return siteRepository.findByUrl(url);
     }

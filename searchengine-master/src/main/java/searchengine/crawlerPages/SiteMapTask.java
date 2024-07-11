@@ -6,11 +6,8 @@ import org.jsoup.Jsoup;
 
 import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
-import org.springframework.beans.factory.annotation.Autowired;
 import searchengine.dto.objects.PageDto;
 import searchengine.lemmizer.Lemmizer;
-import searchengine.model.SiteModel;
-import searchengine.repositories.SiteRepository;
 import searchengine.services.PageCRUDService;
 import searchengine.services.SiteCRUDService;
 
@@ -19,6 +16,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.RecursiveTask;
 import java.util.concurrent.ForkJoinTask;
 import java.net.URL;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
 //@Service
@@ -80,21 +78,26 @@ public class SiteMapTask extends RecursiveTask<TaskResult> {
             pageDto.setPath(pathFromRoot);
             log.info("Before saving page dto object " + pageDto.getPath());
             //pageCRUDService.create(pageDto);
-            synchronized (pageCRUDService) {
+            // synchronized (pageCRUDService) {
                 if (!pageCRUDService.isPageExists(pathFromRoot, siteId)) {
                     pageCRUDService.create(pageDto);
                     lemmizer.createLemmasAndIndex(pageCRUDService.getByPathAndSitePath(pathFromRoot, rootUrl));
                 }
-            }
+           // }
             //lemmizer.createLemmasAndIndex(pageCRUDService.getByPathAndSitePath(pathFromRoot, rootUrl));
+            AtomicInteger counter = new AtomicInteger();
+                List<String> abstrUrls = new ArrayList<>();
             List<ForkJoinTask<TaskResult>> tasks = new ArrayList<>();
             Elements links = doc.select("a[href]");
             links.stream().forEach(link -> {
                 String absUrl = link.absUrl("href");
-                if (isValidUrl(url, absUrl)) {
+                if (absUrl.startsWith(url) && !absUrl.equals(url) && !absUrl.contains("#") && !absUrl.equals(url + "/")) {
                     SiteMapTask task =
                             new SiteMapTask(absUrl, level + 1, pageCRUDService, siteCRUDService, lemmizer, siteId);
                     tasks.add(task.fork());
+                    counter.getAndIncrement();
+                }else{
+                    abstrUrls.add(absUrl);
                 }
             });
             for(ForkJoinTask<TaskResult> task : tasks){

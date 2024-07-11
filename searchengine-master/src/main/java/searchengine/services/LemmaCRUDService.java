@@ -92,7 +92,7 @@ public class LemmaCRUDService implements CRUDService<LemmaDto> {
 
         lemmaM.setFrequency(1);
         log.info("Before saving lemma into method create");
-        lemmaRepository.saveAndFlush(lemmaM);
+        lemmaRepository.save(lemmaM);
     }
 
     @Transactional
@@ -106,7 +106,7 @@ public class LemmaCRUDService implements CRUDService<LemmaDto> {
             dto.setFrequency(1);
             lemmaModels.add(mapToModel(dto));
         }
-        return lemmaRepository.saveAllAndFlush(lemmaModels).stream()
+        return lemmaRepository.saveAll(lemmaModels).stream()
                 .map(this::mapToDto).collect(Collectors.toCollection(HashSet::new));
     }
 
@@ -133,7 +133,7 @@ public class LemmaCRUDService implements CRUDService<LemmaDto> {
         existingLemma.setFrequency(item.getFrequency());
         existingLemma.setSite(siteM);
 
-        lemmaRepository.saveAndFlush(existingLemma);
+        lemmaRepository.save(existingLemma);
     }
 
     @Transactional
@@ -173,7 +173,7 @@ public class LemmaCRUDService implements CRUDService<LemmaDto> {
                 }
             }
         }
-        return lemmaRepository.saveAllAndFlush(lemmasToUpdate).stream()
+        return lemmaRepository.saveAll(lemmasToUpdate).stream()
                 .map(this::mapToDto).collect(Collectors.toCollection(HashSet::new));
     }
 
