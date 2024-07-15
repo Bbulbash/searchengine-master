@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import searchengine.dto.statistics.StatisticsCollector;
 import searchengine.dto.statistics.StatisticsResponse;
 import searchengine.services.IndexingService;
 import searchengine.services.StatisticsService;
@@ -20,15 +21,18 @@ public class ApiController {
     private final StatisticsService statisticsService;
     @Autowired
     private final IndexingService indexingService;
+    @Autowired
+    private final StatisticsCollector statisticsCollector;
 
-    public ApiController(StatisticsService statisticsService, IndexingService indexingService) {
+    public ApiController(StatisticsService statisticsService, IndexingService indexingService, StatisticsCollector statisticsCollector) {
         this.statisticsService = statisticsService;
         this.indexingService = indexingService;
+        this.statisticsCollector = statisticsCollector;
     }
 
     @GetMapping("/statistics")
     public ResponseEntity<StatisticsResponse> statistics() {
-        return ResponseEntity.ok(statisticsService.getStatistics());
+        return ResponseEntity.ok(statisticsCollector.getStatistics());
     }
 
     @SneakyThrows

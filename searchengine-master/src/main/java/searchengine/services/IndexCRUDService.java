@@ -48,7 +48,7 @@ public class IndexCRUDService{
     @Transactional
     public void create(IndexDto item) {
         IndexModel indexM = mapToModel(item);
-        indexRepository.saveAndFlush(indexM);
+        indexRepository.save(indexM);
     }
     @Transactional
     public void createAll(HashSet<IndexDto> indexDtoSet){
@@ -65,7 +65,7 @@ public class IndexCRUDService{
         indexRepository.findById(new IndexKey(item.getPageId(), item.getLemmaId()))
                 .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("From index CRUD service. Index not found"));
         IndexModel indexModel = mapToModel(item);
-        indexRepository.saveAndFlush(indexModel);
+        indexRepository.save(indexModel);
     }
 
     @Transactional

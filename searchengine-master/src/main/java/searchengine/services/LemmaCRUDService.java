@@ -68,6 +68,7 @@ public class LemmaCRUDService implements CRUDService<LemmaDto> {
         }
         return list.stream().map(it -> mapToDto(it)).collect(Collectors.toList());
     }
+    public int getLemmasCount(){return Integer.parseInt(String.valueOf(getAll().stream().count()));}
 
     @Override
     @Transactional

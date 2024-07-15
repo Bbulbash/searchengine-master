@@ -63,7 +63,7 @@ public class SiteCRUDService  {//implements CRUDService<SiteDto>
                 existingSiteM.setLastError(item.getLastError());
                 existingSiteM.setStatusTime(LocalDateTime.parse(item.getStatusTime()));
                 existingSiteM.setStatus(Status.valueOf(item.getStatus()));
-                siteRepository.saveAndFlush(existingSiteM);
+                siteRepository.save(existingSiteM);
             }catch (Exception ex){
                 log.warn("Exception in update site " + ex.getMessage());
                 //throw new Exception("Trables with site update " + existingSiteM.getUrl() + ". Error message " + ex.getMessage());
@@ -80,7 +80,14 @@ public class SiteCRUDService  {//implements CRUDService<SiteDto>
         siteM.setStatusTime(LocalDateTime.now());
         siteM.setUrl(siteDto.getUrl());
         //siteRepository.saveAndFlush(siteM);
-        return mapToDto(siteRepository.saveAndFlush(siteM));
+        return mapToDto(siteRepository.save(siteM));
+    }
+    public int getLemmasCountBySiteId(UUID uuid){
+        return getSiteModelById(uuid).getLemmaModels().size();
+    }
+    @Transactional
+    private SiteModel getSiteModelById(UUID uuid){
+        return siteRepository.findById(uuid).get();
     }
 
     @Transactional
@@ -115,6 +122,7 @@ public class SiteCRUDService  {//implements CRUDService<SiteDto>
     public List<SiteModel> findAll(){
         return siteRepository.findAll();
     }
+    public int getSitesCount(){return findAll().size();}
     @Transactional
     public Boolean existsByUrl(String url){
         return siteRepository.existsByUrl(url);
@@ -138,6 +146,7 @@ public class SiteCRUDService  {//implements CRUDService<SiteDto>
         siteDto.setUrl(siteModel.getUrl());
         return siteDto;
     }
+
     public static SiteModel mapToModel(SiteDto siteDto) {
         SiteModel siteM = new SiteModel();
         //siteM.setId(UUID.fromString(siteDto.getId()));

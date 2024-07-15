@@ -62,6 +62,7 @@ public class PageCRUDService implements CRUDService<PageDto> {
         }
         return list.stream().map(this::mapToDto).collect(Collectors.toList());
     }
+    public int getPagesCount(){return getAll().size();}
 
     @Transactional
     public PageDto getByPathAndSitePath(String pagePath, String sitePath) {
@@ -84,7 +85,7 @@ public class PageCRUDService implements CRUDService<PageDto> {
 
         log.warn("From page CRUD Service. Page model get site url == " + pageM.getSite().getUrl());
         SiteModel siteM = siteCRUDService.findByUrl(pageM.getSite().getUrl());
-        Optional<PageModel> optionalModel = pageRepository.findByPathAndSiteUrl(pageM.getPath(), siteM.getUrl()).stream().findFirst();
+        //Optional<PageModel> optionalModel = pageRepository.findByPathAndSiteUrl(pageM.getPath(), siteM.getUrl()).stream().findFirst();
 
         if (!List.of(siteM).isEmpty()) {
             //delete(optionalModel.get().getId());
@@ -106,8 +107,15 @@ public class PageCRUDService implements CRUDService<PageDto> {
             log.error("Cannot find SiteModel with URL: " + pageM.getSite().getUrl());
             throw new EntityNotFoundException("Site model not found for URL: " + pageM.getSite().getUrl());
         }
-        log.warn("New page id " + pageM.getId());
-        pageRepository.saveAndFlush(pageM);
+        log.warn("New page path " + pageM.getPath());
+        if(pageM.getPath().contains("/posts/arrays-in-java/")){
+            log.info("");
+        }
+        pageRepository.save(pageM);
+        Boolean b = pageRepository.existsByPathAndSiteId(pageM.getPath(), pageM.getSite().getId());
+        if(pageM.getPath().contains("/posts/arrays-in-java/") || !b){
+            log.info("");
+        }
     }
 
     @Transactional
@@ -166,10 +174,13 @@ public class PageCRUDService implements CRUDService<PageDto> {
             throw new EntityNotFoundException("SiteModel not found for URL: " + pageDto.getSite());
         }
         //pageM.setId(pageId);
+        if(pageDto.getPath().contains("/posts/arrays-in-java/")){
+            log.info("");
+        }
         pageM.setSite(siteM);
         pageM.setPath(pageDto.getPath());
         pageM.setCode(pageDto.getCode());
-        pageM.setContent(pageDto.getContent());
+        pageM.setContent(pageDto.getContent().toString());
 
         return pageM;
     }

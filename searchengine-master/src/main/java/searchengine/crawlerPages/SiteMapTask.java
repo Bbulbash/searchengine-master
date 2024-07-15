@@ -6,6 +6,7 @@ import org.jsoup.Jsoup;
 
 import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
+import org.w3c.dom.NodeList;
 import searchengine.dto.objects.PageDto;
 import searchengine.lemmizer.Lemmizer;
 import searchengine.services.PageCRUDService;
@@ -17,6 +18,7 @@ import java.util.concurrent.RecursiveTask;
 import java.util.concurrent.ForkJoinTask;
 import java.net.URL;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
 
 @Slf4j
 //@Service
@@ -51,12 +53,18 @@ public class SiteMapTask extends RecursiveTask<TaskResult> {
     protected TaskResult compute() {
         synchronized (visited) {
             if (!visited.add(url)) {
+                if (url.contains("/posts/arrays-in-java/")){
+                    log.warn("");
+                }
                 return new TaskResult(true, "URL already visited");
             }
         }
         Boolean success = true;
         String errorMessage = null;
         try {
+            if (url.contains("/posts/arrays-in-java/")){
+                log.warn("");
+            }
             Thread.sleep(100);
             Connection.Response response = Jsoup.connect(url).execute();
             Document doc = Jsoup.connect(url).userAgent(USER_AGENT).referrer("http://www.google.com").get();
@@ -67,7 +75,7 @@ public class SiteMapTask extends RecursiveTask<TaskResult> {
                 System.err.println("Ошибка при обработке URL: " + e.getMessage());
             }
             log.warn("url 1111" + url);
-            String pathFromRoot = urlAsURL.getPath();
+            String pathFromRoot = normalizePath(urlAsURL.getPath());
             log.info("Path from url " + pathFromRoot);
             String rootUrl = urlAsURL.getProtocol() + "://" + urlAsURL.getHost() + "/";
             log.info("Root url " + rootUrl);
@@ -77,25 +85,23 @@ public class SiteMapTask extends RecursiveTask<TaskResult> {
             pageDto.setContent(doc.body().text());
             pageDto.setPath(pathFromRoot);
             log.info("Before saving page dto object " + pageDto.getPath());
-            //pageCRUDService.create(pageDto);
-            // synchronized (pageCRUDService) {
-                if (!pageCRUDService.isPageExists(pathFromRoot, siteId)) {
-                    pageCRUDService.create(pageDto);
-                    lemmizer.createLemmasAndIndex(pageCRUDService.getByPathAndSitePath(pathFromRoot, rootUrl));
-                }
-           // }
-            //lemmizer.createLemmasAndIndex(pageCRUDService.getByPathAndSitePath(pathFromRoot, rootUrl));
-            AtomicInteger counter = new AtomicInteger();
-                List<String> abstrUrls = new ArrayList<>();
+            if (!pageCRUDService.isPageExists(pathFromRoot, siteId)) {
+                pageCRUDService.create(pageDto);
+                lemmizer.createLemmasAndIndex(pageCRUDService.getByPathAndSitePath(pathFromRoot, rootUrl));
+            }
+            List<String> abstrUrls = new ArrayList<>();
             List<ForkJoinTask<TaskResult>> tasks = new ArrayList<>();
             Elements links = doc.select("a[href]");
             links.stream().forEach(link -> {
-                String absUrl = link.absUrl("href");
-                if (absUrl.startsWith(url) && !absUrl.equals(url) && !absUrl.contains("#") && !absUrl.equals(url + "/")) {
+                String absUrl = normalizeUrl(link.absUrl("href"));
+                if(absUrl.contains("/posts/arrays-in-java/")){
+                    log.warn("");
+                }
+                if (absUrl.startsWith(rootUrl) && !absUrl.contains("#")
+                        && !absUrl.contains(".xml") && !absUrl.contains(".css")) {
                     SiteMapTask task =
                             new SiteMapTask(absUrl, level + 1, pageCRUDService, siteCRUDService, lemmizer, siteId);
                     tasks.add(task.fork());
-                    counter.getAndIncrement();
                 }else{
                     abstrUrls.add(absUrl);
                 }
@@ -115,6 +121,19 @@ public class SiteMapTask extends RecursiveTask<TaskResult> {
 
     private boolean isValidUrl(String url, String absUrl) {
         return absUrl.startsWith(url) && !absUrl.equals(url) && !absUrl.contains("#") && !absUrl.equals(url + "/");
+    }
+    private String normalizeUrl(String url) {
+        if (!url.endsWith("/")) {
+            return url.concat("/");
+        }
+        return url;
+    }
+
+    private String normalizePath(String path) {
+        if (!path.endsWith("/")) {
+            return path.concat("/");
+        }
+        return path;
     }
 
 }

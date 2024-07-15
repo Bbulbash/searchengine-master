@@ -26,7 +26,8 @@ public class PageModel {
     private String path;
     @Column(name = "code", nullable = false)
     private int code;
-    @Column(name = "content", nullable = false, columnDefinition = "MEDIUMTEXT")
+    //@Column(name = "content", nullable = false, columnDefinition = "MEDIUMTEXT")
+    @Column(name = "content", nullable = false, columnDefinition = "MEDIUMTEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci")
     private String content;
     @OneToMany(mappedBy = "page", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<IndexModel> indexes;
