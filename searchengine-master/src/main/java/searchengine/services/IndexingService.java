@@ -1,6 +1,7 @@
 package searchengine.services;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import searchengine.config.SitesList;
@@ -19,6 +20,7 @@ public class IndexingService {
     private SiteMapManager siteMapManager;
     @Autowired
     private PageIndexer pageIndexer;
+
     @Transactional
     public void deleteSitesData() {
         List<Site> sites = siteList.getSites();
@@ -29,8 +31,9 @@ public class IndexingService {
             }
         }
     }
-    //@Transactional
+    @Async("taskExecutor")
     public void createSitesMaps() throws Exception {
+        siteMapManager.setIndexingActive(true);
         deleteSitesData();
         siteMapManager.start();
     }
@@ -39,6 +42,7 @@ public class IndexingService {
         return siteMapManager.isIndexingActive();
     }
 
+    @Async("taskExecutor")
     @Transactional
     public void stopIndexing(){
         siteMapManager.stopIndexing();
@@ -47,7 +51,7 @@ public class IndexingService {
     public boolean isAllowIndexingPage(String url){
         return pageIndexer.isIndexingAllow(url);
     }
-    //@Transactional
+    @Async("taskExecutor")
     public void startIndexingPage(String url){
         pageIndexer.indexPage(url);
     }

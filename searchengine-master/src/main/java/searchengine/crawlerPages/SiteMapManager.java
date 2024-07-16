@@ -4,6 +4,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import searchengine.config.Site;
 import searchengine.config.SitesList;
@@ -23,6 +24,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.TimeUnit;
 
 @Service
 @Slf4j
@@ -37,9 +39,11 @@ public class SiteMapManager {
     @Autowired
     private Lemmizer lemmizer;
     public volatile boolean isIndexingActive = false;
-    ForkJoinPool pool = new ForkJoinPool(Runtime.getRuntime().availableProcessors());
+    ForkJoinPool pool;
 
+    //@Async("taskExecutor")
     public void start() throws Exception {
+        pool = new ForkJoinPool(Runtime.getRuntime().availableProcessors());
         Long start = System.currentTimeMillis();
         isIndexingActive = true;
         List<Site> listUrl;
@@ -94,13 +98,22 @@ public class SiteMapManager {
         }
     }
 
-    public void stopIndexing(){
-        pool.shutdownNow();
-        updateStatusAfterStop();
-        isIndexingActive = false;
+    public void stopIndexing() {
+        try {
+            pool.shutdownNow();
+            if (!pool.awaitTermination(60, TimeUnit.SECONDS)) {
+                log.warn("Pool did not terminate");
+            }
+            updateStatusAfterStop();
+        } catch (InterruptedException e) {
+            log.error("Interrupted while stopping indexing: ", e);
+            Thread.currentThread().interrupt();
+        } finally {
+            isIndexingActive = false;
+        }
     }
 
-    private void updateStatusAfterStop(){
+    private void updateStatusAfterStop() {
         List<SiteModel> listModel = siteCRUDService.findAllByStatus(Status.INDEXING.name());
         for (SiteModel model : listModel) {
             model.setStatus(Status.FAILED);

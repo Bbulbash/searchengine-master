@@ -76,5 +76,24 @@ public class ApiController {
                             "указанных в конфигурационном файле"), HttpStatus.CONFLICT);
         }
     }
+    /*@SneakyThrows
+    @GetMapping("/search")
+    public ResponseEntity<?> search(
+            @RequestParam(name = "query") String query,
+            @RequestParam(name = "site", required = false) String site,
+            @RequestParam(name = "offset", defaultValue = "0") int offset,
+            @RequestParam(name = "limit", defaultValue = "20") int limit) {
+        if (query == null || query.isEmpty()) {
+            return new ResponseEntity<>(Map.of("error", "Поисковый запрос не задан"), HttpStatus.BAD_REQUEST);
+        }
+
+        SearchResponse searchResponse = searchService.search(query, site, offset, limit);
+
+        if (searchService.isIndexNotReady(site)) {
+            return new ResponseEntity<>(Map.of("error", "Индекс для сайта или всех сайтов не готов"), HttpStatus.CONFLICT);
+        }
+
+        return new ResponseEntity<>(searchResponse, HttpStatus.OK);
+    }*/
 
 }
