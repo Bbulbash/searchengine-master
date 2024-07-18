@@ -21,7 +21,5 @@ spring:
 
 indexing-settings:
   sites:
-    - url: https://sendel.ru/
-      name: Sendel
-    - url: https://nikoartgallery.com/
-      name: NikoArt
+    - url: https://www.wix.com/
+      name: Wix

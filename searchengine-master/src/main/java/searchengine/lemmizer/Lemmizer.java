@@ -3,6 +3,7 @@ package searchengine.lemmizer;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.lucene.morphology.LuceneMorphology;
+import org.apache.lucene.morphology.english.EnglishLuceneMorphology;
 import org.apache.lucene.morphology.russian.RussianLuceneMorphology;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -28,7 +29,8 @@ public class Lemmizer {
     private SiteCRUDService siteCRUDService;
     @Autowired
     private IndexCRUDService indexCRUDService;
-    private static final String[] particleNames = new String[]{"МЕЖД", "ПРЕДЛ", "СОЮЗ"};
+    private static final String[] particleNames =
+            new String[]{"МЕЖД", "ПРЕДЛ", "СОЮЗ", "CONJ", "ARTICLE", "ADJECTIVE", "PART", "ADVERB"};
 
     public void createLemmasAndIndex(PageDto pageDto) throws IOException {
         Long pageId = pageDto.getId();
@@ -180,70 +182,73 @@ public class Lemmizer {
 
         return lemmaCountMap;
     }
-
-    /*private List<String> getTextAsList(String text) throws IOException {
-        String regex = "[^а-яА-Я ]";
-        String regex1 = "[ ]{2,}";
-
-        String cleanText0 = text.replaceAll(regex, "");
-        String cleanText1 = cleanText0.replaceAll(regex1, " ");
-        log.info("Clean text" + cleanText1);
-        LuceneMorphology luceneMorphology = new RussianLuceneMorphology();
-        List<String> words = new ArrayList<>();
-        for (String word : cleanText1.split(" ")) {
-            log.info("Get Text as List word " + word);
-            String lowerCaseWord = word.toLowerCase();
-            String wordWithInfo = luceneMorphology.getMorphInfo(lowerCaseWord).toString();
-            log.info("Word with info " + wordWithInfo);
-            if (!lowerCaseWord.isEmpty() && !hasParticleProperty(wordWithInfo)) {
-                words.add(lowerCaseWord);
-            }
-        }
-        return words;
-    }*/
     public List<String> getTextAsList(String text) throws IOException {
-        String regex = "[^а-яА-Я -]";
+        //String regex = "[^а-яА-Я -]";
+        String regex = "[^а-яА-Яa-zA-Z -]";
         String regex1 = "[ ]{2,}";
-
         String cleanText0 = text.replaceAll(regex, "");
         String cleanText1 = cleanText0.replaceAll(regex1, " ");
         log.info("Clean text: " + cleanText1);
 
-        LuceneMorphology luceneMorphology = new RussianLuceneMorphology();
+        LuceneMorphology luceneMorphologyRU = new RussianLuceneMorphology();
+        LuceneMorphology luceneMorphologyEN = new EnglishLuceneMorphology();
         List<String> words = new ArrayList<>();
-
         for (String word : cleanText1.split(" ")) {
             if (word == null || word.isEmpty()) continue;
             log.info("Get Text as List word: " + word);
 
             String lowerCaseWord = word.toLowerCase();
-            log.info("Lower case word: " + lowerCaseWord);
+            log.info("Lowercase word: " + lowerCaseWord);
 
-            try {
-                List<String> morphInfoList = luceneMorphology.getMorphInfo(lowerCaseWord);
-                if (morphInfoList == null || morphInfoList.isEmpty()) {
-                    log.warn("Morph info list is null or empty for word: " + lowerCaseWord);
-                    continue;
+            // Попытка определить лемматизацию русского слова
+            if (isRussianWord(lowerCaseWord)) {
+                try {
+                    List<String> morphInfoList = luceneMorphologyRU.getMorphInfo(lowerCaseWord);
+                    if (morphInfoList != null && !morphInfoList.isEmpty()) {
+                        String wordWithInfo = morphInfoList.toString();
+                        log.info("Word with info (RU): " + wordWithInfo);
+
+                        if (!hasParticleProperty(wordWithInfo)) {
+                            words.add(lowerCaseWord);
+                        }
+                    }
+                } catch (Exception e) {
+                    log.error("Error processing Russian word: " + lowerCaseWord, e);
                 }
+            } else {
+                // Попытка определить лемматизацию английского слова
+                try {
+                    List<String> morphInfoList = luceneMorphologyEN.getMorphInfo(lowerCaseWord);
+                    if (morphInfoList != null && !morphInfoList.isEmpty()) {
+                        String wordWithInfo = morphInfoList.toString();
+                        log.info("Word with info (EN): " + wordWithInfo);
 
-                String wordWithInfo = morphInfoList.toString();
-                log.info("Word with info: " + wordWithInfo);
-
-                if (!hasParticleProperty(wordWithInfo)) {
-                    words.add(lowerCaseWord);
+                        if (!hasParticleProperty(wordWithInfo)) {
+                            words.add(lowerCaseWord);
+                        }
+                    }
+                } catch (Exception e) {
+                    log.error("Error processing English word: " + lowerCaseWord, e);
                 }
-            } catch (Exception e) {
-                log.error("Error processing word: " + lowerCaseWord, e);
             }
         }
         return words;
     }
+    private boolean isRussianWord(String word) {
+        return word.matches("[а-яА-Я]+");
+    }
 
     private List<String> getNormalWords(List<String> words) throws IOException {
-        LuceneMorphology luceneMorphology = new RussianLuceneMorphology();
+        LuceneMorphology luceneMorphologyRU = new RussianLuceneMorphology();
+        LuceneMorphology luceneMorphologyEN = new EnglishLuceneMorphology();
         List<String> normalWords = new ArrayList<>();
         for (String word : words) {
-            String normalForm = luceneMorphology.getNormalForms(word).get(0);
+            String normalForm;
+            if(isRussianWord(word)){
+                normalForm = luceneMorphologyRU.getNormalForms(word).get(0);
+            }else{
+                normalForm = luceneMorphologyEN.getNormalForms(word).get(0);
+            }
             if (normalForm.isEmpty()) {
                 continue;
             }
@@ -259,11 +264,6 @@ public class Lemmizer {
             }
         }
         return false;
-    }
-
-    private String removeHTMLTags(String html) {// Очищает html от тегов
-        Document doc = Jsoup.parse(html);
-        return doc.text();
     }
 
 }

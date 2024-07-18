@@ -53,18 +53,26 @@ public class SiteMapManager {
         for (Site site : listUrl) {
             String url = site.getUrl();
             String siteId = null;
-            if (!siteCRUDService.existsByUrl(url)) {
+            if (!siteCRUDService.existsByUrl(url) && isIndexingActive == true) {
                 log.warn("Create after exist by url false. Url - " + url);
                 SiteDto siteDto = createSite(site);
                 siteId = siteDto.getId();
                 log.warn("After creating site. Repository size " + siteCRUDService.getAll().size());
             }
             log.info("Url from site map manager " + url);
-            SiteMapTask task = new SiteMapTask(url, 0, pageCRUDService, siteCRUDService, lemmizer, siteId);
-            TaskResult taskResult = pool.invoke(task);
-            updateSiteStatus(url, taskResult);
+            if(isIndexingActive == true){
+                SiteMapTask task = new SiteMapTask(url, 0, pageCRUDService, siteCRUDService, lemmizer, siteId, this);
+                TaskResult taskResult = pool.invoke(task);
+                updateSiteStatus(url, taskResult);
+                if(isIndexingActive == false){
+                    updateSiteStatus(url, new TaskResult(false, "Индексация остановлена пользователем"));
+                }
+            }
         }
-        isIndexingActive = false;
+
+            isIndexingActive = false;
+
+
         System.err.println("Start time - finish time = " + (System.currentTimeMillis() - start));
     }
 
@@ -100,13 +108,11 @@ public class SiteMapManager {
 
     public void stopIndexing() {
         try {
+            isIndexingActive = false;
             pool.shutdownNow();
-            if (!pool.awaitTermination(60, TimeUnit.SECONDS)) {
-                log.warn("Pool did not terminate");
-            }
             updateStatusAfterStop();
-        } catch (InterruptedException e) {
-            log.error("Interrupted while stopping indexing: ", e);
+        } catch (Exception e) {
+            log.error("Проблема с остановкой индексации ", e);
             Thread.currentThread().interrupt();
         } finally {
             isIndexingActive = false;
@@ -114,7 +120,7 @@ public class SiteMapManager {
     }
 
     private void updateStatusAfterStop() {
-        List<SiteModel> listModel = siteCRUDService.findAllByStatus(Status.INDEXING.name());
+        List<SiteModel> listModel = siteCRUDService.findAllByStatus(Status.INDEXING);
         for (SiteModel model : listModel) {
             model.setStatus(Status.FAILED);
             model.setLastError("Индексация остановлена пользователем");

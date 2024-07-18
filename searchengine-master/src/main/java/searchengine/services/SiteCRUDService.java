@@ -132,8 +132,8 @@ public class SiteCRUDService  {//implements CRUDService<SiteDto>
         return siteRepository.count();
     }
     @Transactional
-    public List<SiteModel> findAllByStatus(String statusName){
-        return siteRepository.findAllByStatus(statusName);
+    public List<SiteModel> findAllByStatus(Status status){
+        return siteRepository.findAllByStatus(status);
     }
 
     public static SiteDto mapToDto(SiteModel siteModel) {
