@@ -1,5 +1,6 @@
 package searchengine.services;
 
+import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -12,8 +13,12 @@ import searchengine.config.Site;
 import searchengine.crawlerPages.PageIndexer;
 import searchengine.crawlerPages.SiteMapManager;
 import searchengine.model.SiteModel;
+
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 @Service
 @Slf4j
@@ -26,6 +31,14 @@ public class IndexingService {
     private SiteMapManager siteMapManager;
     @Autowired
     private PageIndexer pageIndexer;
+    @Autowired
+    private AsyncService asyncService;
+    private ExecutorService executorService;
+
+    @PostConstruct
+    public void init() {
+        executorService = Executors.newFixedThreadPool(10);
+    }
 
     @Transactional
     public void deleteSitesData() {
@@ -37,7 +50,8 @@ public class IndexingService {
             }
         }
     }
-    @Async("taskExecutor")
+
+    //@Async("taskExecutor")
     public void createSitesMaps() {
         try {
             siteMapManager.setIndexingActive(true);
@@ -47,6 +61,7 @@ public class IndexingService {
             log.error("Exception during site maps creation", e);
         }
     }
+
     //@Transactional
     public boolean isIndexingActive() {
         return siteMapManager.isIndexingActive();
@@ -54,25 +69,28 @@ public class IndexingService {
 
     @Async("taskExecutor")
     //@Transactional
-    public void stopIndexing(){
+    public void stopIndexing() {
         siteMapManager.stopIndexing();
     }
+
     //@Transactional
-    public boolean isAllowIndexingPage(String url){
+    public boolean isAllowIndexingPage(String url) {
         return pageIndexer.isIndexingAllow(url);
     }
+
     @Async("taskExecutor")
-    public void startIndexingPage(String url){
+    public void startIndexingPage(String url) {
         pageIndexer.indexPage(url);
     }
-    @Async("taskExecutor")
-    public void startIndexing(){
-        if (!isIndexingActive()) {
+
+    //@Async("taskExecutor")
+    public void startIndexing() {
+        executorService.submit(() -> {
             createSitesMaps();
-        } else {
-            log.warn("Indexing is already running");
-        }
+        });
     }
+
+    //  @Async("taskExecutor")
     public ResponseEntity<?> startIndexingSync() {
         if (!isIndexingActive()) {
             startIndexing();
@@ -83,6 +101,16 @@ public class IndexingService {
                     .body(Map.of("result", false, "error", "Индексация уже запущена"));
         }
     }
+    //    public ResponseEntity<?> startIndexingSync() {
+//        if (!isIndexingActive()) {
+//            startIndexing();
+//            return ResponseEntity.ok(Map.of("result", true));
+//        } else {
+//            return ResponseEntity
+//                    .status(HttpStatus.CONFLICT)
+//                    .body(Map.of("result", false, "error", "Индексация уже запущена"));
+//        }
+//    }
 
     public ResponseEntity<?> stopIndexingSites() {
         boolean isIndexingActive = isIndexingActive();
@@ -94,6 +122,7 @@ public class IndexingService {
                     (Map.of("result", false, "error", "Индексация не запущена"), HttpStatus.CONFLICT);
         }
     }
+
     public ResponseEntity<?> indexPage(String url) {// Если индексация уже запущена - выкидывать ошибку
         log.info("URL inside API " + url);
         boolean isAllowIndexingPage = isAllowIndexingPage(url);
