@@ -215,7 +215,7 @@ public class Lemmizer {
                 } catch (Exception e) {
                     log.error("Error processing Russian word: " + lowerCaseWord, e);
                 }
-            } else {
+            } else if(isEnglishWord(lowerCaseWord)){
                 // Попытка определить лемматизацию английского слова
                 try {
                     List<String> morphInfoList = luceneMorphologyEN.getMorphInfo(lowerCaseWord);
@@ -237,8 +237,9 @@ public class Lemmizer {
     private boolean isRussianWord(String word) {
         return word.matches("[а-яА-Я]+");
     }
+    private boolean isEnglishWord(String word){return word.matches("[a-zA-Z]+");}
 
-    private List<String> getNormalWords(List<String> words) throws IOException {
+    public List<String> getNormalWords(List<String> words) throws IOException {
         LuceneMorphology luceneMorphologyRU = new RussianLuceneMorphology();
         LuceneMorphology luceneMorphologyEN = new EnglishLuceneMorphology();
         List<String> normalWords = new ArrayList<>();

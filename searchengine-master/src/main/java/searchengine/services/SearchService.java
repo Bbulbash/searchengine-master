@@ -1,16 +1,19 @@
 package searchengine.services;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.lucene.morphology.LuceneMorphology;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import searchengine.config.Site;
 import searchengine.config.SitesList;
 import searchengine.dto.objects.IndexDto;
 import searchengine.dto.objects.LemmaDto;
 import searchengine.dto.objects.PageDto;
 import searchengine.dto.statistics.SearchResult;
 import searchengine.lemmizer.Lemmizer;
+
 
 import java.io.IOException;
 import java.util.*;
@@ -29,13 +32,15 @@ public class SearchService {
     private IndexCRUDService indexCRUDService;
     @Autowired
     private LemmaCRUDService lemmaCRUDService;
+
     private static final int SNIPPET_LENGTH = 300;
+
     public Map<String, Object> search(String query, String site, int offset, int limit)
             throws IOException, InterruptedException {
         Map<String, Object> response = new HashMap<>();
         Set<SearchResult> results = search(query, site);
 
-        if(results.isEmpty()){
+        if (results.isEmpty()) {
             response.put("result", false);
             response.put("error", "Лемма не найдена");
             return response;
@@ -55,15 +60,35 @@ public class SearchService {
     }
 
     public Set<SearchResult> search(String text, String url) throws IOException, InterruptedException {
+        HashMap<PageDto, Float> sortedPages = new HashMap<>();
+        if(url != null){
+//            List<PageDto> pagesBySite = pageCRUDService.getPagesBySiteURL(url);
+//            Map<String, Integer> lemmasList = getLemmasList(text, url, pagesBySite);
+//            Set<PageDto> relevantPages = findPagesByLemmas(lemmasList, pagesBySite);
+//            if (relevantPages.size() == 0) {
+//                return new HashSet<>();
+//            }
+//             sortedPages = getPagesSortByRelevance(relevantPages);
+            sortedPages = getSortedPages(text, url);
+        }else{
+            List<Site> sites = sitesList.getSites();
+            for(Site site : sites){
+                sortedPages.putAll(getSortedPages(text, site.getUrl()));
+            }
+        }
+
+        return convertToSearchResult(sortedPages, text);
+    }
+    private HashMap<PageDto, Float> getSortedPages(String text, String url) throws IOException {
         List<PageDto> pagesBySite = pageCRUDService.getPagesBySiteURL(url);
         Map<String, Integer> lemmasList = getLemmasList(text, url, pagesBySite);
         Set<PageDto> relevantPages = findPagesByLemmas(lemmasList, pagesBySite);
         if (relevantPages.size() == 0) {
-            return new HashSet<>();
+            return new HashMap<>();
         }
-        HashMap<PageDto, Float> sortedPages = getPagesSortByRelevance(relevantPages);
-        return convertToSearchResult(sortedPages, text);
+        return getPagesSortByRelevance(relevantPages);
     }
+
     private Set<SearchResult> convertToSearchResult(HashMap<PageDto, Float> sortedPages, String query) throws IOException, InterruptedException {
         //List<SearchResult> result = new ArrayList<>();
         Set<SearchResult> result = new HashSet<>();
@@ -80,17 +105,26 @@ public class SearchService {
             searchResult.setTitle(getPageTitle(page));
             searchResult.setSnippet(generateSnippet(page.getContent(), query));
             searchResult.setRelevance(relevance);
+            if(searchResult.getSnippet() == "") break;
 
             result.add(searchResult);
         }
         return result;
     }
-    private String getPageTitle(PageDto pageDto){
+
+    private String getPageTitle(PageDto pageDto) {
         String html = pageDto.getContent();
         Document doc = Jsoup.parse(html);
         return doc.title();
     }
-    private String generateSnippet(String content, String query) {
+
+    private String generateSnippet(String content, String query) throws IOException {
+      /*  Map<String, Integer> mapLemma = lemmizer.getLemmasList(query);
+        Set<String> lemmaSet = new HashSet<>();
+        for (String lemma : mapLemma.keySet()) {
+            lemmaSet.add(lemma);
+        }
+        String[] keywords = lemmaSet.toArray(new String[0]);*/
 
         String[] keywords = query.split("\\s+");
 
@@ -104,9 +138,9 @@ public class SearchService {
         return snippet;
     }
 
-    private String createSnippet(String text, String[] keywords) {
+    private String createSnippet(String text, String[] keywords) throws IOException {
         String snippet = "";
-
+        //lemmizer.getNormalWords
         // Поиск упоминания ключевого слова и создание фрагмента текста вокруг него
         for (String keyword : keywords) {
             int index = text.toLowerCase().indexOf(keyword.toLowerCase());
@@ -121,9 +155,23 @@ public class SearchService {
             }
         }
 
-        // Если ни одно из ключевых слов не найдено, просто обрезаем текст
+        // Если ни одно из ключевых слов не найдено, прописать поиск по другим формам слова
         if (snippet.isEmpty()) {
-            snippet = text.length() > SNIPPET_LENGTH ? text.substring(0, SNIPPET_LENGTH) + "..." : text;
+            // snippet = text.length() > SNIPPET_LENGTH ? text.substring(0, SNIPPET_LENGTH) + "..." : text;
+            List<String> textAsList = lemmizer.getTextAsList(text);
+            List<String> normalFormText = lemmizer.getNormalWords(textAsList);
+            for (String keyword : keywords) {
+                int index = normalFormText.indexOf(keyword.toLowerCase());
+                if (index != -1) {
+                    int start = Math.max(0, index - SNIPPET_LENGTH / 2);
+                    int end = Math.min(text.length(), index + SNIPPET_LENGTH / 2);
+
+                    snippet = text.substring(start, end);
+                    if (start > 0) snippet = "..." + snippet;
+                    if (end < text.length()) snippet += "...";
+                    break;
+                }
+            }
         }
 
         return snippet;
@@ -134,8 +182,8 @@ public class SearchService {
         HashMap<PageDto, Float> absoluteRelevancies = new HashMap<>();
         float maxRelevancy = 0.0f;
 
-        for(PageDto page : pagesSet) {
-            if(page.getId() != null) {
+        for (PageDto page : pagesSet) {
+            if (page.getId() != null) {
                 Set<IndexDto> indexDtoSet = indexCRUDService.findByPageId(page.getId());
                 float rankSum = calculateAbsoluteRelevancy(indexDtoSet);
                 absoluteRelevancies.put(page, rankSum);
@@ -147,7 +195,7 @@ public class SearchService {
             }
         }
 
-        for(Map.Entry<PageDto, Float> entry : absoluteRelevancies.entrySet()) {
+        for (Map.Entry<PageDto, Float> entry : absoluteRelevancies.entrySet()) {
             PageDto page = entry.getKey();
             float absoluteRelevancy = entry.getValue();
             float relativeRelevancy = absoluteRelevancy / maxRelevancy;
@@ -164,48 +212,7 @@ public class SearchService {
                         LinkedHashMap::new
                 ));
     }
-    /*private HashMap<PageDto, Float> getPagesSortByRelevance(Set<PageDto> pagesSet) {
-        HashMap<PageDto, Float> absoluteRelevancies = new HashMap<>();
-        float maxRelevancy = 0.0f;
 
-        // Вычисление абсолютной релевантности каждой страницы
-        for (PageDto page : pagesSet) {
-            if (page.getId() != null) {
-                Set<IndexDto> indexDtoSet = indexCRUDService.findByPageId(page.getId());
-                float rankSum = calculateAbsoluteRelevancy(indexDtoSet);
-                absoluteRelevancies.put(page, rankSum);
-
-                // Обновление максимальной релевантности
-                if (rankSum > maxRelevancy) {
-                    maxRelevancy = rankSum;
-                }
-            } else {
-                log.error("PAGE ID IS NULL");
-            }
-        }
-
-        // Вычисление относительной релевантности страниц
-        float finalMaxRelevancy = maxRelevancy;
-        HashMap<PageDto, Float> sortedPagesDto = absoluteRelevancies.entrySet()
-                .stream()
-                .collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        entry -> finalMaxRelevancy == 0 ? 0 : entry.getValue() / finalMaxRelevancy,
-                        (e1, e2) -> e1,
-                        LinkedHashMap::new
-                ));
-
-        // Сортировка страниц по относительной релевантности
-        return sortedPagesDto.entrySet()
-                .stream()
-                .sorted((entry1, entry2) -> entry2.getValue().compareTo(entry1.getValue()))
-                .collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        Map.Entry::getValue,
-                        (e1, e2) -> e1,
-                        LinkedHashMap::new
-                ));
-    }*/
     private float calculateAbsoluteRelevancy(Set<IndexDto> indexByPage) {
         float relevancySum = 0.0f;
         for (IndexDto lemma : indexByPage) {
@@ -230,8 +237,12 @@ public class SearchService {
         Map<String, Integer> dirtyMap = new HashMap<>();
         Map<String, Integer> cleanMap = new HashMap<>();
         for (PageDto dto : pagesBySite) {
+            Set<LemmaDto> lemmasByPage = lemmaCRUDService.getLemmasByPage(dto.getId());// Для ускорения работы можно вытягивать инфу в массив Страница - набор лемм
+            Set<String> lemmasName = lemmasByPage.stream()
+                    .map(LemmaDto::getLemma)
+                    .collect(Collectors.toSet());
             for (String lemma : dirtyLemmas) {
-                if (dto.getContent().contains(lemma)) {
+                if (lemmasName.contains(lemma)) {
                     dirtyMap.put(lemma, dirtyMap.getOrDefault(lemma, 0) + 1);
                 }
             }
