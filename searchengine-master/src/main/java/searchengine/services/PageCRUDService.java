@@ -3,7 +3,11 @@ package searchengine.services;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,6 +17,7 @@ import searchengine.dto.objects.IndexDto;
 import searchengine.dto.objects.LemmaDto;
 import searchengine.dto.objects.PageDto;
 import searchengine.dto.objects.SiteDto;
+import searchengine.dto.statistics.SearchResult;
 import searchengine.model.*;
 import searchengine.repositories.PageRepository;
 
@@ -62,7 +67,10 @@ public class PageCRUDService implements CRUDService<PageDto> {
         }
         return list.stream().map(this::mapToDto).collect(Collectors.toList());
     }
-    public int getPagesCount(){return getAll().size();}
+
+    public int getPagesCount() {
+        return getAll().size();
+    }
 
     @Transactional
     public PageDto getByPathAndSitePath(String pagePath, String sitePath) {
@@ -77,22 +85,29 @@ public class PageCRUDService implements CRUDService<PageDto> {
             throw new RuntimeException("An unexpected error occurred while finding the page by path: " + pagePath, ex);
         }
     }
+    @Transactional
+    public List<PageDto> getPagesBySiteURL(String url){
+        UUID uuid = siteCRUDService.findByUrl(url).getId();
+        List<PageModel> models = pageRepository.findAllBySiteId(uuid);
+        List<PageDto> dto = new ArrayList<>();
+        for (PageModel model : models){
+            dto.add(mapToDto(model));
+        }
+        return dto;
+    }
 
     @Transactional
     @Override
     public void create(PageDto item) throws Exception {
         PageModel pageM = mapToModel(item);
-
         log.warn("From page CRUD Service. Page model get site url == " + pageM.getSite().getUrl());
         SiteModel siteM = siteCRUDService.findByUrl(pageM.getSite().getUrl());
-        //Optional<PageModel> optionalModel = pageRepository.findByPathAndSiteUrl(pageM.getPath(), siteM.getUrl()).stream().findFirst();
 
         if (!List.of(siteM).isEmpty()) {
-            //delete(optionalModel.get().getId());
             log.warn("optionalModel.isPresent()");
         } else {
             log.warn("Don`t present");
-            Site site =  siteList.getSites().stream().filter(it -> it.getUrl().equals(pageM.getSite().getUrl())).findFirst().get();
+            Site site = siteList.getSites().stream().filter(it -> it.getUrl().equals(pageM.getSite().getUrl())).findFirst().get();
             //if(site.)
             SiteDto dto = siteCRUDService.generateSiteDto(site);
             siteCRUDService.create(dto);
@@ -107,15 +122,12 @@ public class PageCRUDService implements CRUDService<PageDto> {
             log.error("Cannot find SiteModel with URL: " + pageM.getSite().getUrl());
             throw new EntityNotFoundException("Site model not found for URL: " + pageM.getSite().getUrl());
         }
-        log.warn("New page path " + pageM.getPath());
-        if(pageM.getPath().contains("/posts/arrays-in-java/")){
-            log.info("");
-        }
+        pageM.setContent(parseHtml(item.getContent()));
         pageRepository.save(pageM);
-        Boolean b = pageRepository.existsByPathAndSiteId(pageM.getPath(), pageM.getSite().getId());
-        if(pageM.getPath().contains("/posts/arrays-in-java/") || !b){
-            log.info("");
-        }
+    }
+    private String parseHtml(String html){
+        Document document = Jsoup.parse(html);
+        return document.body().text();
     }
 
     @Transactional
@@ -145,7 +157,7 @@ public class PageCRUDService implements CRUDService<PageDto> {
             List<IndexDto> indexForLog = indexCRUDService.getAll().stream().filter(it -> it.getPageId().equals(id)).toList();
             log.warn("indexForLog size " + indexForLog.size());
             log.warn("lemma repo is empty " + lemmaCRUDService.isServiceEmpty());
-            log.warn("Second check is page exist "+ pageRepository.existsById(id.intValue()));
+            log.warn("Second check is page exist " + pageRepository.existsById(id.intValue()));
 
             pageRepository.deleteById(id.intValue());
 
@@ -153,6 +165,7 @@ public class PageCRUDService implements CRUDService<PageDto> {
             throw new EntityNotFoundException("Page not found with id: " + id);
         }
     }
+
     public PageDto mapToDto(PageModel page) {
         PageDto pageDto = new PageDto();
         pageDto.setId(page.getId());
@@ -173,8 +186,8 @@ public class PageCRUDService implements CRUDService<PageDto> {
             log.info("Site repo size " + siteCRUDService.findAll().size());
             throw new EntityNotFoundException("SiteModel not found for URL: " + pageDto.getSite());
         }
-        //pageM.setId(pageId);
-        if(pageDto.getPath().contains("/posts/arrays-in-java/")){
+
+        if (pageDto.getPath().contains("/posts/arrays-in-java/")) {
             log.info("");
         }
         pageM.setSite(siteM);
@@ -202,17 +215,9 @@ public class PageCRUDService implements CRUDService<PageDto> {
 
         return pageM;
     }
+
     @Transactional
-    public Boolean isPageExists(String path, String uuid){
+    public Boolean isPageExists(String path, String uuid) {
         return pageRepository.existsByPathAndSiteId(path, UUID.fromString(uuid));
-    }
-
-    //@Transactional
-    public void deleteBySiteUUID(UUID uuid) {
-        List<PageModel> models = pageRepository.findAllBySiteId(uuid);
-        for (PageModel page : models) {
-            delete(page.getId());
-        }
-
     }
 }

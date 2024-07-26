@@ -14,10 +14,8 @@ import java.util.List;
 import java.util.Optional;
 @Repository
 public interface IndexRepository extends JpaRepository<IndexModel, IndexKey> {
-    //Optional<IndexModel> findByPageAndLemmaId(PageModel page, int lemmaId);
-
     Optional<IndexModel> findByKey(IndexKey key);
-    Optional<IndexModel> findByPageId(Long pageId);
+    List<IndexModel> findByPageId(Long pageId);
     @Query("SELECT COUNT(i) > 0 FROM IndexModel i WHERE i.id.pageId = :pageId AND i.id.lemmaId = :lemmaId")
     Boolean existsByKey(@Param("pageId") Long pageId, @Param("lemmaId") Long lemmaId);
     //List<IndexModel>

@@ -14,13 +14,7 @@ import java.util.UUID;
 
 @Repository
 public interface LemmaRepository extends JpaRepository<LemmaModel, Integer> {
+    @Query("SELECT l FROM LemmaModel l WHERE l.id IN :lemmasId")
+    List<LemmaModel> findLemmasByIds(@Param("lemmasId") List<Integer> lemmasId);
 
-    LemmaModel findByLemmaAndSiteId(String lemma, UUID siteId);
-    //List<LemmaModel> findAllByLemmaAndSiteId(List<String> lemma, UUID siteId);
-    @Modifying
-    @Query("UPDATE LemmaModel l SET l.lemma = :lemma, l.frequency = :frequency, l.site = :site WHERE l.id = :id")
-    void updateLemma(@Param("lemma") String lemma,
-                     @Param("frequency") int frequency,
-                     @Param("site") SiteModel site,
-                     @Param("id") int id);
 }

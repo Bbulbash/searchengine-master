@@ -2,11 +2,13 @@ package searchengine.services;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DeadlockLoserDataAccessException;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import searchengine.dto.objects.IndexDto;
 import searchengine.dto.objects.LemmaDto;
 import searchengine.model.LemmaModel;
 import searchengine.model.SiteModel;
@@ -23,6 +25,8 @@ public class LemmaCRUDService implements CRUDService<LemmaDto> {
     private final LemmaRepository lemmaRepository;
 
     private final SiteCRUDService siteCRUDService;
+    @Autowired
+    private IndexCRUDService indexCRUDService;
 
     @Override
     @Transactional
@@ -81,11 +85,7 @@ public class LemmaCRUDService implements CRUDService<LemmaDto> {
         log.warn("From page CRUD Service. Page model get site url == " + lemmaM.getSite().getUrl());
         log.warn("From page CRUD Service. Site repo size " + siteCRUDService.findAll().size());
         SiteModel siteM = siteCRUDService.findByUrl(lemmaM.getSite().getUrl());
-        // if (siteM != null) {
-        //siteM.setStatusTime(LocalDateTime.now());
-        //siteM.setStatus(Status.INDEXING);
-        //siteCRUDService.update(siteCRUDService.mapToDto(siteM));
-        //} else {
+
         if (siteM == null) {
             log.error("Cannot find lemma with URL: " + lemmaM.getSite().getUrl());
             throw new EntityNotFoundException("Site model not found for URL: " + lemmaM.getSite().getUrl());
@@ -223,7 +223,7 @@ public class LemmaCRUDService implements CRUDService<LemmaDto> {
         //model.setId(lemmaDto.getId());
         model.setSite(siteM);
         model.setFrequency(lemmaDto.getFrequency());
-        model.setLemma(lemmaDto.getLemma());
+        model.setLemma(lemmaDto.getLemma().toString());
         return model;
     }
 
@@ -234,6 +234,17 @@ public class LemmaCRUDService implements CRUDService<LemmaDto> {
             backoff = @Backoff(delay = 2000))
     public Boolean isServiceEmpty() {
         return lemmaRepository.count() == 0;
+    }
+    @Transactional
+    public Set<LemmaDto> getLemmasByPage(Long pageId){
+        List<Integer> lemmasId = new ArrayList<>();
+        Set<IndexDto> indexes = indexCRUDService.findByPageId(pageId);
+        indexes.stream().forEach(it -> lemmasId.add(it.getLemmaId()));
+
+        List<LemmaModel> lemmaModels = lemmaRepository.findLemmasByIds(lemmasId);
+        Set<LemmaDto> lemmaDtos = new HashSet<>();
+        lemmaModels.stream().forEach(it -> lemmaDtos.add(mapToDto(it)));
+        return lemmaDtos;
     }
 
 }

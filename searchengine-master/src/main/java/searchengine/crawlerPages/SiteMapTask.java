@@ -56,9 +56,6 @@ public class SiteMapTask extends RecursiveTask<TaskResult> {
     protected TaskResult compute() {
         synchronized (visited) {
             if (!visited.add(url)) {
-                if (url.contains("/posts/arrays-in-java/")){
-                    log.warn("");
-                }
                 return new TaskResult(true, "URL already visited");
             }
         }
@@ -67,9 +64,6 @@ public class SiteMapTask extends RecursiveTask<TaskResult> {
         if (siteMapManager.isIndexingActive() == true) {
 
             try {
-                if (url.contains("/posts/arrays-in-java/")) {
-                    log.warn("");
-                }
                 Thread.sleep(100);
                 Connection.Response response = Jsoup.connect(url).execute();
                 Document doc = Jsoup.connect(url).userAgent(USER_AGENT).referrer("http://www.google.com").get();
@@ -87,7 +81,8 @@ public class SiteMapTask extends RecursiveTask<TaskResult> {
                 PageDto pageDto = new PageDto();
                 pageDto.setSite(rootUrl);//Корневой url
                 pageDto.setCode(response.statusCode());
-                pageDto.setContent(doc.body().text());
+                //pageDto.setContent(doc.body().text());
+                pageDto.setContent(doc.toString());
                 pageDto.setPath(pathFromRoot);
                 log.info("Before saving page dto object " + pageDto.getPath());
                 if (!pageCRUDService.isPageExists(pathFromRoot, siteId)) {
