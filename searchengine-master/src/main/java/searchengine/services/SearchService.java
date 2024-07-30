@@ -1,7 +1,6 @@
 package searchengine.services;
 
 import lombok.extern.slf4j.Slf4j;
-import org.apache.lucene.morphology.LuceneMorphology;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,8 +12,6 @@ import searchengine.dto.objects.LemmaDto;
 import searchengine.dto.objects.PageDto;
 import searchengine.dto.statistics.SearchResult;
 import searchengine.lemmizer.Lemmizer;
-
-
 import java.io.IOException;
 import java.util.*;
 import java.util.regex.Matcher;
@@ -53,12 +50,21 @@ public class SearchService {
         int total = results.size();
         int endIndex = Math.min(offset + limit, total);
         List<SearchResult> pagedResults = results.stream().toList().subList(offset, endIndex);
+        List<SearchResult> cleanPagedResults = new ArrayList<>();
+        for (SearchResult result : pagedResults){
+            //result = result;
+            if(!result.getSnippet().equals("")){
+                cleanPagedResults.add(result);
+            }
+        }
+        total = cleanPagedResults.size();
 
         response.put("result", true);
-        response.put("total", total);
-        response.put("offset", offset);
-        response.put("limit", limit);
-        response.put("data", pagedResults);
+        response.put("count", total);
+        //response.put("total", total);
+        //response.put("offset", offset);
+       // response.put("limit", limit);
+        response.put("data", cleanPagedResults);
 
         return response;
     }
