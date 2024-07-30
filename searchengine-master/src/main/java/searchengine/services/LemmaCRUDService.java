@@ -10,6 +10,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import searchengine.dto.objects.IndexDto;
 import searchengine.dto.objects.LemmaDto;
+import searchengine.dto.objects.PageDto;
+import searchengine.model.IndexModel;
 import searchengine.model.LemmaModel;
 import searchengine.model.SiteModel;
 import searchengine.repositories.LemmaRepository;
@@ -27,6 +29,8 @@ public class LemmaCRUDService implements CRUDService<LemmaDto> {
     private final SiteCRUDService siteCRUDService;
     @Autowired
     private IndexCRUDService indexCRUDService;
+    @Autowired
+    private PageCRUDService pageCRUDService;
 
     @Override
     @Transactional
@@ -246,5 +250,70 @@ public class LemmaCRUDService implements CRUDService<LemmaDto> {
         lemmaModels.stream().forEach(it -> lemmaDtos.add(mapToDto(it)));
         return lemmaDtos;
     }
+//    @Transactional// Метод должен вернуть <PageId, Set<LemmaDto>>
+//    public Map<Long, Set<LemmaDto>> findLemmasByPageIds(Set<Long> pageIds) {
+//        String url = pageCRUDService.getById(pageIds.stream().findFirst().get()).getSite();
+//        UUID uuid = siteCRUDService.findByUrl(url).getId();
+//        Map<Long, Set<IndexDto>> indexMap = indexCRUDService.findIndexesByPageIds(pageIds);
+//        List<LemmaModel> lemmas = lemmaRepository.findLemmasBySiteId(uuid);
+//        Map<Long, Set<LemmaDto>> lemmasByPageId = new HashMap<>();
+//
+//        for (LemmaModel lemma : lemmas) {
+//            LemmaDto lemmaDto = mapToDto(lemma);
+//
+//            // Найти все страницы, на которых встречается эта лемма
+//            for (Map.Entry<Long, Set<IndexDto>> entry : indexMap.entrySet()) {
+//                Long pageId = entry.getKey();
+//                Set<IndexDto> indices = entry.getValue();
+//
+//                for (IndexDto index : indices) {
+//                    log.info("index.getLemmaId() " + index.getLemmaId() + ". lemma.getId() " + lemma.getId());
+//                    if (index.getLemmaId() == lemma.getId()) {
+//                        lemmasByPageId
+//                                .computeIfAbsent(pageId, k -> new HashSet<>())
+//                                .add(lemmaDto);
+//                        break; // Выход из внутреннего цикла, так как лемма уже добавлена
+//                    }
+//                }
+//            }
+//        }
+//
+//        return lemmasByPageId;
+//    }
+public Map<Long, Set<LemmaDto>> findLemmasByPageIds(Set<Long> pageIds) {
+    String url = pageCRUDService.getById(pageIds.stream().findFirst().orElseThrow()).getSite();
 
+    UUID uuid = siteCRUDService.findByUrl(url).getId();
+
+    Map<Long, Set<IndexDto>> indexMap = indexCRUDService.findIndexesByPageIds(pageIds);
+
+    List<LemmaModel> lemmas = lemmaRepository.findLemmasBySiteId(uuid);
+
+    // Мапа для быстрого доступа к леммам по их id
+    Map<Long, LemmaDto> lemmaDtoMap = lemmas.stream()
+            .map(this::mapToDto)
+            .collect(Collectors.toMap(LemmaDto::getId, lemmaDto -> lemmaDto));
+
+    // Мапа для группировки лемм по pageId
+    Map<Long, Set<LemmaDto>> lemmasByPageId = new HashMap<>();
+
+    // Заполняем мапу lemmasByPageId
+    for (Map.Entry<Long, Set<IndexDto>> entry : indexMap.entrySet()) {
+        Long pageId = entry.getKey();
+        Set<IndexDto> indices = entry.getValue();
+
+        for (IndexDto index : indices) {
+            //int lemmaId = index.getLemmaId();
+            Long lemmaId = Long.valueOf(index.getLemmaId());
+            // Проверяем наличие леммы в мапе lemmaDtoMap и добавляем в lemmasByPageId
+            if (lemmaDtoMap.containsKey(lemmaId)) {
+                lemmasByPageId
+                        .computeIfAbsent(pageId, k -> new HashSet<>())
+                        .add(lemmaDtoMap.get(lemmaId));
+            }
+        }
+    }
+
+    return lemmasByPageId;
+}
 }

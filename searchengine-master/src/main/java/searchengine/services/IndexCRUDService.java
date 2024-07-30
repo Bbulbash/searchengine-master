@@ -109,13 +109,6 @@ public class IndexCRUDService{
         return indexRepository.count() == 0;
     }
 
-    /*@Transactional
-    public Optional<IndexModel> findByPageId(Long pageId) {
-        return Optional
-                .ofNullable(indexRepository.findByPageId(pageId)
-                .orElseThrow(() ->
-                        new jakarta.persistence.EntityNotFoundException("From index CRUD service. Index not found")));
-    }*/
     @Transactional
     public Set<IndexDto> findByPageId(Long pageId){
         List<IndexModel> models = indexRepository.findByPageId(pageId);
@@ -124,6 +117,21 @@ public class IndexCRUDService{
             dto.add(mapToDto(model));
         }
         return dto;
+    }
+    @Transactional
+    public Map<Long, Set<IndexDto>> findIndexesByPageIds(Set<Long> pageIds) {
+        List<IndexModel> allIndexes = indexRepository.findAllByPageIds(pageIds);
+        Map<Long, Set<IndexDto>> indexesByPageId = new HashMap<>();
+
+        for (IndexModel index : allIndexes) {
+            Long pageId = index.getKey().getPageId();
+            IndexDto indexDto = mapToDto(index);
+            indexesByPageId
+                    .computeIfAbsent(pageId, k -> new HashSet<>())
+                    .add(indexDto);
+        }
+
+        return indexesByPageId;
     }
 
     @Transactional

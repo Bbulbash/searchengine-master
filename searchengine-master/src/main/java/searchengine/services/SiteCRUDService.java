@@ -34,6 +34,11 @@ public class SiteCRUDService  {//implements CRUDService<SiteDto>
     public SiteDto getByUrl(String url){
         return mapToDto(siteRepository.findByUrl(url));
     }
+    @Transactional
+    public int getPagesCount(String url){
+        SiteModel model = siteRepository.findByUrl(url);
+        return model.getPages().size();
+    }
 
    // @Override
     @Transactional

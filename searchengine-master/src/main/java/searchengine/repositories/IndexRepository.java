@@ -12,6 +12,8 @@ import searchengine.model.PageModel;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+
 @Repository
 public interface IndexRepository extends JpaRepository<IndexModel, IndexKey> {
     Optional<IndexModel> findByKey(IndexKey key);
@@ -25,4 +27,6 @@ public interface IndexRepository extends JpaRepository<IndexModel, IndexKey> {
     void deleteByIndexKey(@Param("pageId") Long pageId, @Param("lemmaId") Long lemmaId);
     @Query("SELECT i FROM IndexModel i WHERE i.key.pageId = :pageId")
     List<IndexModel> findAllByPageId(@Param("pageId") Long pageId);
+    @Query("SELECT i FROM IndexModel i WHERE i.id.pageId IN :pageIds")
+    List<IndexModel> findAllByPageIds(@Param("pageIds") Set<Long> pageIds);
 }
