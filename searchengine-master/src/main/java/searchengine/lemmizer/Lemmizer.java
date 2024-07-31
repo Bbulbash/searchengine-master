@@ -23,33 +23,34 @@ import java.util.*;
 @Slf4j
 @Service
 public class Lemmizer {
-    @Autowired
-    private LemmaCRUDService lemmaCRUDService;
-    @Autowired
-    private SiteCRUDService siteCRUDService;
-    @Autowired
-    private IndexCRUDService indexCRUDService;
+    private final LemmaCRUDService lemmaCRUDService;
+    private final SiteCRUDService siteCRUDService;
+    private final IndexCRUDService indexCRUDService;
     private static final String[] particleNames =
             new String[]{"МЕЖД", "ПРЕДЛ", "СОЮЗ", "CONJ", "ARTICLE", "ADJECTIVE", "PART", "ADVERB"};
 
+    public Lemmizer(LemmaCRUDService lemmaCRUDService, SiteCRUDService siteCRUDService, IndexCRUDService indexCRUDService) {
+        this.lemmaCRUDService = lemmaCRUDService;
+        this.siteCRUDService = siteCRUDService;
+        this.indexCRUDService = indexCRUDService;
+    }
+
     public void createLemmasAndIndex(PageDto pageDto) throws IOException {
         Long pageId = pageDto.getId();
-        log.info("Page id = " + pageId);
-        log.info("Page dto path " + pageDto.getPath());
+
         Map<String, Integer> lemmaCountMap = getLemmasList(pageDto.getContent());
-        log.info("Lemma count map " + lemmaCountMap.isEmpty());
+
         HashSet<IndexData> indexData = new HashSet<>();
         HashSet<LemmaDto> lemmaForUpdate = new HashSet<>();
-        //HashMap<String, String> lemmaForCreate = new HashMap<>();//siteUrl : lemmaName
+
         Set<Map.Entry<String, String>> lemmaForCreate = new HashSet<>();
         UUID siteId = UUID.fromString(siteCRUDService.getByUrl(pageDto.getSite()).getId());
         for (String lemmaName : lemmaCountMap.keySet()) {
             LemmaDto lemmaDto = lemmaCRUDService
                     .getByLemmaAndSiteId(lemmaName,
-                            siteId);// Что-то ломается здесь
+                            siteId);
 
             if (lemmaDto == null) {
-                //lemmaForCreate.put(pageDto.getSite().toString(), lemmaName.toString());
                 lemmaForCreate.add(new AbstractMap.SimpleEntry<>(pageDto.getSite(), lemmaName));
             } else {
                 lemmaDto.setFrequency(lemmaDto.getFrequency() + 1);
@@ -60,20 +61,19 @@ public class Lemmizer {
             indexData.add(new IndexData(lemmaCountMap.get(lemmaName), pageId, dto));
         }
         HashSet<LemmaDto> updateLemmas = updateLemmas(lemmaForUpdate);
-        HashSet<LemmaDto> lemmaDtos = waitForLemmaCreation(lemmaForCreate);// Все леммы с id возвращаются
+        HashSet<LemmaDto> lemmaDtos = waitForLemmaCreation(lemmaForCreate);
         for (IndexData data : indexData) {
-            log.info("Data index data before setting lemmaDto " + data.getLemmaDto().getLemma());
+
             Optional<LemmaDto> optionalLemmaDto = lemmaDtos.stream().filter(it -> it.getLemma().equals(data.getLemmaDto().getLemma())).findFirst();
 
             if (optionalLemmaDto.isPresent() && optionalLemmaDto.get().getId() != null) {
                 data.setLemmaDto(optionalLemmaDto.get());
-                log.info("Data index data after setting lemmaDto " + data.getLemmaDto().getLemma());
             } else {
                 optionalLemmaDto = updateLemmas.stream().filter(it -> it.getLemma().equals(data.getLemmaDto().getLemma())).findFirst();
                 if (optionalLemmaDto.isPresent() && optionalLemmaDto.get().getId() != null) {
                    data.setLemmaDto(optionalLemmaDto.get());
                 } else {
-                    log.info("No LemmaDto found for lemma: " + data.getLemmaDto().getLemma());
+
                     LemmaDto dto = lemmaCRUDService.getByLemmaAndSiteId(data.getLemmaDto().getLemma(), siteId);
                     data.setLemmaDto(dto);
                     if(dto.getId() == null){
@@ -82,8 +82,6 @@ public class Lemmizer {
                 }
             }
         }
-        //lemmaDtos = waitForLemmaCreation(lemmaForCreate);
-
         createIndex(indexData);
 
     }
@@ -94,7 +92,6 @@ public class Lemmizer {
             String key = entry.getKey();
             String value = entry.getValue();
             if (value == null || key == null) {
-                log.error("ID of Lemma is null for lemma: ");
                 continue;
             }
             LemmaDto lemmaDto = new LemmaDto();
@@ -140,13 +137,13 @@ public class Lemmizer {
         return lemmaCRUDService.updateAll(lemmaForUpdate);
     }
 
-    private void createIndex(HashSet<IndexData> indexData) {// метод должен преобразовать в HashSet<IndexDto>
+    private void createIndex(HashSet<IndexData> indexData) {
         HashSet<IndexDto> dtos = new HashSet<>();
         for (IndexData data : indexData) {
             IndexDto dto = new IndexDto();
             dto.setPageId(data.getPageId());
             if (data.getLemmaDto().getId() == null) {
-                log.info("Lemma id почему-то null");// Все леммы приходят без id
+                log.info("Lemma id почему-то null");
                 throw new EntityNotFoundException("ID LemmaDto is null");
             }
             dto.setLemmaId(Math.toIntExact(data.getLemmaDto().getId()));
@@ -154,16 +151,6 @@ public class Lemmizer {
             dtos.add(dto);
         }
         indexCRUDService.createAll(dtos);
-    }
-
-    private LemmaDto createLemma(String siteUrl, String lemmaName) {
-        LemmaDto dto = new LemmaDto();
-        dto.setSiteUrl(siteUrl);
-        dto.setLemma(lemmaName);
-        lemmaCRUDService.create(dto);
-        UUID siteId = siteCRUDService.findByUrl(siteUrl).getId();
-        LemmaDto dtoForReturn = lemmaCRUDService.getByLemmaAndSiteId(lemmaName, siteId);
-        return dtoForReturn;
     }
 
     public Map<String, Integer> getLemmasList(String text) throws IOException {
@@ -200,7 +187,6 @@ public class Lemmizer {
             String lowerCaseWord = word.toLowerCase();
             log.info("Lowercase word: " + lowerCaseWord);
 
-            // Попытка определить лемматизацию русского слова
             if (isRussianWord(lowerCaseWord)) {
                 try {
                     List<String> morphInfoList = luceneMorphologyRU.getMorphInfo(lowerCaseWord);
@@ -216,7 +202,7 @@ public class Lemmizer {
                     log.error("Error processing Russian word: " + lowerCaseWord, e);
                 }
             } else if(isEnglishWord(lowerCaseWord)){
-                // Попытка определить лемматизацию английского слова
+
                 try {
                     List<String> morphInfoList = luceneMorphologyEN.getMorphInfo(lowerCaseWord);
                     if (morphInfoList != null && !morphInfoList.isEmpty()) {
@@ -258,7 +244,7 @@ public class Lemmizer {
         return normalWords;
     }
 
-    private boolean hasParticleProperty(String word) {//wordBase
+    private boolean hasParticleProperty(String word) {
         for (String property : particleNames) {
             if (word.toUpperCase().contains(property)) {
                 return true;

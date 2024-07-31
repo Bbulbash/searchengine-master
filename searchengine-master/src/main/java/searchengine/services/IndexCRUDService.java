@@ -21,19 +21,11 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class IndexCRUDService{
+
+public class IndexCRUDService {
     private final IndexRepository indexRepository;
-    private final SiteCRUDService siteCRUDService;
-    @Autowired
-    private PageCRUDService pageCRUDService;
-    @Autowired
-    private LemmaCRUDService lemmaCRUDService;
-    @Transactional
-    public IndexDto getById(IndexKey key) {
-        IndexModel model = indexRepository.findByKey(key)
-                .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("From index CRUD service. Index not found"));
-        return mapToDto(model);//mapToDto(indexRepository.getReferenceById(Math.toIntExact(id)));
-    }
+    private final PageCRUDService pageCRUDService;
+
 
     @Transactional
     public Collection<IndexDto> getAll() {
@@ -43,8 +35,6 @@ public class IndexCRUDService{
         }
         return list.stream().map(it -> mapToDto(it)).collect(Collectors.toList());
     }
-
-   // @Override
     @Transactional
     public void create(IndexDto item) {
         IndexModel indexM = mapToModel(item);
@@ -58,8 +48,6 @@ public class IndexCRUDService{
         }
         indexRepository.saveAllAndFlush(models);
     }
-
-    //@Override
     @Transactional
     public void update(IndexDto item) {
         indexRepository.findById(new IndexKey(item.getPageId(), item.getLemmaId()))
@@ -68,17 +56,14 @@ public class IndexCRUDService{
         indexRepository.save(indexModel);
     }
 
+
     @Transactional
     public void delete(IndexKey key) {
-        log.info("Delete index " + key);
         if (indexRepository.existsByKey(key.getPageId(), Long.parseLong(String.valueOf(key.getLemmaId())))){
-          //  lemmaCRUDService.delete((long) key.getLemmaId());
             indexRepository.deleteByIndexKey(key.getPageId(), Long.parseLong(String.valueOf(key.getLemmaId())));
         }
         else throw new jakarta.persistence.EntityNotFoundException("Index not found");
     }
-
-    //@Transactional
     private IndexModel mapToModel(IndexDto dto) {
         IndexModel model = new IndexModel();
         IndexKey key = new IndexKey(dto.getPageId(), dto.getLemmaId());
@@ -134,13 +119,4 @@ public class IndexCRUDService{
         return indexesByPageId;
     }
 
-    @Transactional
-    public void deleteByPageId(Long pageId){
-        List<IndexModel> models = indexRepository.findAllByPageId(pageId);
-        for(IndexModel model : models){
-            log.info("Index model page before delete " + model.getKey().getPageId());
-            log.info("Lemma id " + model.getKey().getLemmaId());
-            indexRepository.delete(model);
-        }
-    }
 }

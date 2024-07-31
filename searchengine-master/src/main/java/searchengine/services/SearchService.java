@@ -23,18 +23,20 @@ import java.util.stream.Collectors;
 public class SearchService {
     @Autowired
     private SitesList sitesList;
-    @Autowired
-    private PageCRUDService pageCRUDService;
-    @Autowired
-    private SiteCRUDService siteCRUDService;
-    @Autowired
-    private Lemmizer lemmizer;
-    @Autowired
-    private IndexCRUDService indexCRUDService;
-    @Autowired
-    private LemmaCRUDService lemmaCRUDService;
-
+    private final PageCRUDService pageCRUDService;
+    private final SiteCRUDService siteCRUDService;
+    private final Lemmizer lemmizer;
+    private final IndexCRUDService indexCRUDService;
+    private final LemmaCRUDService lemmaCRUDService;
     private static final int SNIPPET_LENGTH = 300;
+
+    public SearchService(PageCRUDService pageCRUDService, SiteCRUDService siteCRUDService, Lemmizer lemmizer, IndexCRUDService indexCRUDService, LemmaCRUDService lemmaCRUDService) {
+        this.pageCRUDService = pageCRUDService;
+        this.siteCRUDService = siteCRUDService;
+        this.lemmizer = lemmizer;
+        this.indexCRUDService = indexCRUDService;
+        this.lemmaCRUDService = lemmaCRUDService;
+    }
 
     public Map<String, Object> search(String query, String site, int offset, int limit)
             throws IOException, InterruptedException {
@@ -52,7 +54,6 @@ public class SearchService {
         List<SearchResult> pagedResults = results.stream().toList().subList(offset, endIndex);
         List<SearchResult> cleanPagedResults = new ArrayList<>();
         for (SearchResult result : pagedResults){
-            //result = result;
             if(!result.getSnippet().equals("")){
                 cleanPagedResults.add(result);
             }
@@ -61,9 +62,6 @@ public class SearchService {
 
         response.put("result", true);
         response.put("count", total);
-        //response.put("total", total);
-        //response.put("offset", offset);
-       // response.put("limit", limit);
         response.put("data", cleanPagedResults);
 
         return response;
@@ -93,7 +91,6 @@ public class SearchService {
     }
 
     private Set<SearchResult> convertToSearchResult(HashMap<PageDto, Float> sortedPages, String query) throws IOException, InterruptedException {
-        //List<SearchResult> result = new ArrayList<>();
         Set<SearchResult> result = new HashSet<>();
         for (Map.Entry<PageDto, Float> entry : sortedPages.entrySet()) {
             PageDto page = entry.getKey();
@@ -108,7 +105,7 @@ public class SearchService {
             searchResult.setTitle(getPageTitle(page));
             searchResult.setSnippet(generateSnippet(page.getContent(), query));
             searchResult.setRelevance(relevance);
-            if(searchResult.getSnippet() == "") break;
+            if(searchResult.getSnippet().equals("")) break;
 
             result.add(searchResult);
         }
@@ -127,7 +124,6 @@ public class SearchService {
 
         String snippet = createSnippet(content, keywords);
 
-        // Выделение ключевых слов в сниппете
         for (String keyword : keywords) {
             snippet = highlightKeyword(snippet, keyword);
         }
@@ -136,12 +132,10 @@ public class SearchService {
     }
 
     private String highlightKeyword(String text, String keyword) {
-        // Компиляция регулярного выражения для ключевого слова с учетом регистра
         String regex = "(?i)(" + Pattern.quote(keyword) + ")";
         Pattern pattern = Pattern.compile(regex);
         Matcher matcher = pattern.matcher(text);
 
-        // Замена с сохранением оригинального регистра
         StringBuffer result = new StringBuffer();
         while (matcher.find()) {
             matcher.appendReplacement(result, "<b>" + matcher.group(1) + "</b>");
@@ -153,8 +147,7 @@ public class SearchService {
 
     private String createSnippet(String text, String[] keywords) throws IOException {
         String snippet = "";
-        //lemmizer.getNormalWords
-        // Поиск упоминания ключевого слова и создание фрагмента текста вокруг него
+
         for (String keyword : keywords) {
             int index = text.toLowerCase().indexOf(keyword.toLowerCase());
             if (index != -1) {
@@ -168,9 +161,8 @@ public class SearchService {
             }
         }
 
-        // Если ни одно из ключевых слов не найдено, прописать поиск по другим формам слова
         if (snippet.isEmpty()) {
-            // snippet = text.length() > SNIPPET_LENGTH ? text.substring(0, SNIPPET_LENGTH) + "..." : text;
+
             List<String> textAsList = lemmizer.getTextAsList(text);
             List<String> normalFormText = lemmizer.getNormalWords(textAsList);
             for (String keyword : keywords) {
@@ -253,7 +245,7 @@ public class SearchService {
         Set<Long> pageIds = pagesBySite.stream().map(PageDto::getId).collect(Collectors.toSet());
         Map<Long, Set<LemmaDto>> lemmasByPages = lemmaCRUDService.findLemmasByPageIds(pageIds);
         for (PageDto dto : pagesBySite) {
-            Set<LemmaDto> lemmasByPage = lemmasByPages.get(dto.getId());// Для ускорения работы можно вытягивать инфу в массив Страница - набор лемм
+            Set<LemmaDto> lemmasByPage = lemmasByPages.get(dto.getId());
             Set<String> lemmasName = lemmasByPage.stream()
                     .map(LemmaDto::getLemma)
                     .collect(Collectors.toSet());
@@ -263,14 +255,13 @@ public class SearchService {
                 }
             }
         }
-        // Проверяем, какие леммы встречаются на 80% и менее страницах
         for (String lemma : dirtyMap.keySet()) {
             int count = dirtyMap.get(lemma);
             if (count <= 0.8 * pagesCount) {
                 cleanMap.put(lemma, count);
             }
         }
-        return cleanMap;// Почему-то cleanMap пустой
+        return cleanMap;
     }
 
     private Map<String, Integer> sortLemmas(Map<String, Integer> cleanLemmas) {
@@ -287,7 +278,7 @@ public class SearchService {
 
     private Set<PageDto> findPagesByLemmas(Map<String, Integer> sortedLemmas, List<PageDto> pagesBySite) {
         Set<PageDto> relevantPages = new HashSet<>();
-        // Вытаскивать индексы с конкретной страницы, вытаскивать от туда леммы  и их сравнивать с леммами
+
         boolean firstLemma = true;
         Set<Long> pageIds = new HashSet<>();
         pagesBySite.stream().forEach(it -> pageIds.add(it.getId()));
@@ -295,7 +286,7 @@ public class SearchService {
         for (String lemma : sortedLemmas.keySet()) {
             Set<PageDto> lemmaPages = new HashSet<>();
             for (PageDto pageDto : pagesBySite) {
-                //Set<LemmaDto> lemmaDtos = lemmaCRUDService.getLemmasByPage(pageDto.getId());
+
                 Set<LemmaDto> lemmaDtos = mapPageLemmas.get(pageDto.getId());
                 Set<String> lemmaNames = lemmaDtos.stream().map(LemmaDto::getLemma).collect(Collectors.toSet());
 

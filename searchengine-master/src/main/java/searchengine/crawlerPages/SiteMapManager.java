@@ -1,10 +1,8 @@
 package searchengine.crawlerPages;
 
-import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import searchengine.config.Site;
 import searchengine.config.SitesList;
@@ -12,19 +10,13 @@ import searchengine.dto.objects.SiteDto;
 import searchengine.lemmizer.Lemmizer;
 import searchengine.model.SiteModel;
 import searchengine.model.Status;
-import searchengine.repositories.SiteRepository;
-import searchengine.services.IndexingService;
 import searchengine.services.PageCRUDService;
 import searchengine.services.SiteCRUDService;
-
-import javax.persistence.EntityNotFoundException;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.ForkJoinPool;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 
 @Service
 @Slf4j
@@ -38,53 +30,46 @@ public class SiteMapManager {
     private PageCRUDService pageCRUDService;
     @Autowired
     private Lemmizer lemmizer;
-    public volatile boolean isIndexingActive = false;
+    public AtomicBoolean isIndexingActive = new AtomicBoolean(false);
     ForkJoinPool pool;
 
-    //@Async("taskExecutor")
     public void start() throws Exception {
         pool = new ForkJoinPool(Runtime.getRuntime().availableProcessors());
         Long start = System.currentTimeMillis();
-        isIndexingActive = true;
+        isIndexingActive.set(true);
         List<Site> listUrl;
         listUrl = sitesList.getSites();
-        log.info("List of url size " + listUrl.size());
         siteCRUDService.deleteAll();
         for (Site site : listUrl) {
             String url = site.getUrl();
             String siteId = null;
-            if (!siteCRUDService.existsByUrl(url) && isIndexingActive == true) {
-                log.warn("Create after exist by url false. Url - " + url);
+            if (!siteCRUDService.existsByUrl(url) && isIndexingActive.get() == true) {
                 SiteDto siteDto = createSite(site);
                 siteId = siteDto.getId();
-                log.warn("After creating site. Repository size " + siteCRUDService.getAll().size());
             }
-            log.info("Url from site map manager " + url);
-            if(isIndexingActive == true){
+            if(isIndexingActive.get() == true){
                 SiteMapTask task = new SiteMapTask(url, 0, pageCRUDService, siteCRUDService, lemmizer, siteId, this);
                 TaskResult taskResult = pool.invoke(task);
                 updateSiteStatus(url, taskResult);
-                if(isIndexingActive == false){
+                if(isIndexingActive.get() == false){
                     updateSiteStatus(url, new TaskResult(false, "Индексация остановлена пользователем"));
                 }
             }
         }
 
-            isIndexingActive = false;
+            isIndexingActive.set(false);
 
 
         System.err.println("Start time - finish time = " + (System.currentTimeMillis() - start));
     }
 
     private SiteDto createSite(Site site) {
-        //Long siteId = getNewSiteId();
         SiteDto siteDto = new SiteDto();
-        //siteDto.setId(siteId);
-        log.info("New site creating");
+
         siteDto.setName(site.getName());
         siteDto.setUrl(site.getUrl());
         siteDto.setStatus(Status.INDEXING.name());
-        log.info("Url of new site " + site.getUrl());
+
         return siteCRUDService.create(siteDto);
     }
 
@@ -108,18 +93,18 @@ public class SiteMapManager {
 
     public void stopIndexing() {
         try {
-            isIndexingActive = false;
+            isIndexingActive.set(false);
             pool.shutdownNow();
             updateStatusAfterStop();
         } catch (Exception e) {
             log.error("Проблема с остановкой индексации ", e);
             Thread.currentThread().interrupt();
         } finally {
-            isIndexingActive = false;
+            isIndexingActive.set(false);
         }
     }
 
-    private void updateStatusAfterStop() {
+    private void updateStatusAfterStop() throws Exception {
         List<SiteModel> listModel = siteCRUDService.findAllByStatus(Status.INDEXING);
         for (SiteModel model : listModel) {
             model.setStatus(Status.FAILED);
@@ -130,7 +115,7 @@ public class SiteMapManager {
     }
 
     public boolean isIndexingActive() {
-        return isIndexingActive;
+        return isIndexingActive.get();
     }
 
 }

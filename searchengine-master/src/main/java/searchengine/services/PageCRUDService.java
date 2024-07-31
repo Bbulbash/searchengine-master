@@ -6,8 +6,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,7 +15,6 @@ import searchengine.dto.objects.IndexDto;
 import searchengine.dto.objects.LemmaDto;
 import searchengine.dto.objects.PageDto;
 import searchengine.dto.objects.SiteDto;
-import searchengine.dto.statistics.SearchResult;
 import searchengine.model.*;
 import searchengine.repositories.PageRepository;
 
@@ -50,10 +47,8 @@ public class PageCRUDService implements CRUDService<PageDto> {
                     .map(this::mapToDto)
                     .orElseThrow(() -> new EntityNotFoundException("Page with id " + id + " not found."));
         } catch (EntityNotFoundException ex) {
-            log.warn("Page with id {} not found: {}", id, ex.getMessage());
             throw ex;
         } catch (Exception ex) {
-            log.error("An unexpected error occurred while finding the page by id: {}", id, ex);
             throw new RuntimeException("An unexpected error occurred while finding the page by id: " + id, ex);
         }
     }
@@ -75,7 +70,6 @@ public class PageCRUDService implements CRUDService<PageDto> {
     @Transactional
     public PageDto getByPathAndSitePath(String pagePath, String sitePath) {
         try {
-            log.info("Find page by path and site url size " + pageRepository.findAll().size());
             return mapToDto(pageRepository.findByPathAndSiteUrl(pagePath, sitePath).stream().findFirst().get());
         } catch (EntityNotFoundException ex) {
             log.warn("Page with path {} not found: {}", pagePath, ex.getMessage());
@@ -100,15 +94,12 @@ public class PageCRUDService implements CRUDService<PageDto> {
     @Override
     public void create(PageDto item) throws Exception {
         PageModel pageM = mapToModel(item);
-        log.warn("From page CRUD Service. Page model get site url == " + pageM.getSite().getUrl());
         SiteModel siteM = siteCRUDService.findByUrl(pageM.getSite().getUrl());
 
         if (!List.of(siteM).isEmpty()) {
             log.warn("optionalModel.isPresent()");
         } else {
-            log.warn("Don`t present");
             Site site = siteList.getSites().stream().filter(it -> it.getUrl().equals(pageM.getSite().getUrl())).findFirst().get();
-            //if(site.)
             SiteDto dto = siteCRUDService.generateSiteDto(site);
             siteCRUDService.create(dto);
         }
@@ -119,12 +110,12 @@ public class PageCRUDService implements CRUDService<PageDto> {
             SiteDto siteDto = SiteCRUDService.mapToDto(siteM);
             siteCRUDService.update(siteDto);
         } else {
-            log.error("Cannot find SiteModel with URL: " + pageM.getSite().getUrl());
             throw new EntityNotFoundException("Site model not found for URL: " + pageM.getSite().getUrl());
         }
         pageM.setContent(parseHtml(item.getContent()));
         pageRepository.save(pageM);
     }
+
     private String parseHtml(String html){
         Document document = Jsoup.parse(html);
         return document.body().text();
@@ -140,25 +131,16 @@ public class PageCRUDService implements CRUDService<PageDto> {
     @Transactional(isolation = Isolation.SERIALIZABLE)
     @Override
     public void delete(Long id) {
-        log.info("Delete page " + id);
         if (pageRepository.existsById(id.intValue())) {
 
             List<IndexDto> indexes = indexCRUDService.getAll().stream().filter(it -> it.getPageId().equals(id)).toList();
-            log.info("Found {} indexes for page id {}", indexes.size(), id);
 
             indexes.forEach(index -> {
                 LemmaDto lemma = lemmaCRUDService.getById(Long.valueOf(index.getLemmaId()));
                 lemma.setFrequency(lemma.getFrequency() - 1);
                 lemmaCRUDService.update(lemma);
 
-                //IndexKey key = new IndexKey(index.getPageId(), index.getLemmaId());
-                //indexCRUDService.delete(key);
             });
-            List<IndexDto> indexForLog = indexCRUDService.getAll().stream().filter(it -> it.getPageId().equals(id)).toList();
-            log.warn("indexForLog size " + indexForLog.size());
-            log.warn("lemma repo is empty " + lemmaCRUDService.isServiceEmpty());
-            log.warn("Second check is page exist " + pageRepository.existsById(id.intValue()));
-
             pageRepository.deleteById(id.intValue());
 
         } else {
@@ -183,13 +165,9 @@ public class PageCRUDService implements CRUDService<PageDto> {
         SiteModel siteM = siteCRUDService.findByUrl(pageDto.getSite());
         if (siteM == null) {
             log.error("SiteModel not found for URL: " + pageDto.getSite());
-            log.info("Site repo size " + siteCRUDService.findAll().size());
             throw new EntityNotFoundException("SiteModel not found for URL: " + pageDto.getSite());
         }
 
-        if (pageDto.getPath().contains("/posts/arrays-in-java/")) {
-            log.info("");
-        }
         pageM.setSite(siteM);
         pageM.setPath(pageDto.getPath());
         pageM.setCode(pageDto.getCode());
@@ -204,7 +182,6 @@ public class PageCRUDService implements CRUDService<PageDto> {
         SiteModel siteM = siteCRUDService.findByUrl(pageDto.getSite());
         if (siteM == null) {
             log.error("SiteModel not found for URL: " + pageDto.getSite());
-            log.info("Site repo size " + siteCRUDService.findAll().size());
             throw new EntityNotFoundException("SiteModel not found for URL: " + pageDto.getSite());
         }
         pageM.setId(pageDto.getId());

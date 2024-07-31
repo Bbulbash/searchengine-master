@@ -1,37 +1,27 @@
 package searchengine.controllers;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.web.bind.annotation.*;
 import searchengine.dto.statistics.StatisticsCollector;
 import searchengine.dto.statistics.StatisticsResponse;
 import searchengine.services.IndexingService;
 import searchengine.services.SearchService;
-import searchengine.services.StatisticsService;
-
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api")
 @Slf4j
 public class ApiController {
+    private final IndexingService indexingService;
+    private final StatisticsCollector statisticsCollector;
+    private final SearchService searchService;
 
-    @Autowired
-    private StatisticsService statisticsService;
-    @Autowired
-    private IndexingService indexingService;
-    @Autowired
-    private StatisticsCollector statisticsCollector;
-    @Autowired
-    private SearchService searchService;
-
-    public ApiController(StatisticsService statisticsService, IndexingService indexingService, StatisticsCollector statisticsCollector) {
-        this.statisticsService = statisticsService;
+    public ApiController( IndexingService indexingService, StatisticsCollector statisticsCollector, SearchService searchService) {
         this.indexingService = indexingService;
         this.statisticsCollector = statisticsCollector;
+        this.searchService = searchService;
     }
 
     @GetMapping("/statistics")
@@ -50,7 +40,7 @@ public class ApiController {
     }
 
     @PostMapping("/indexPage")
-    public ResponseEntity<?> indexPage(@RequestParam(name = "url") String url) {
+    public ResponseEntity<?> indexPage(@RequestParam(name = "url") String url) throws Exception {
         return indexingService.indexPage(url);
     }
     @GetMapping("/search")
@@ -64,9 +54,7 @@ public class ApiController {
             Map<String, Object> response = searchService.search(query, site, offset, limit);
             return ResponseEntity.ok(response);
 
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("result", false, "error", e.getMessage()));
-        } catch (IllegalStateException e) {
+        } catch (IllegalArgumentException | IllegalStateException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("result", false, "error", e.getMessage()));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("result", false, "error", "Внутренняя ошибка сервера"));

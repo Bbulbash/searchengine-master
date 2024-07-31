@@ -1,6 +1,5 @@
 package searchengine.dto.statistics;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import searchengine.model.SiteModel;
 import searchengine.services.IndexingService;
@@ -15,14 +14,18 @@ import java.util.stream.Collectors;
 
 @Service
 public class StatisticsCollector {
-    @Autowired
-    PageCRUDService pageCRUDService;
-    @Autowired
-    SiteCRUDService siteCRUDService;
-    @Autowired
-    IndexingService indexingService;
-    @Autowired
-    LemmaCRUDService lemmaCRUDService;
+    private final PageCRUDService pageCRUDService;
+    private final SiteCRUDService siteCRUDService;
+    private final IndexingService indexingService;
+    private final LemmaCRUDService lemmaCRUDService;
+
+    public StatisticsCollector(PageCRUDService pageCRUDService, SiteCRUDService siteCRUDService, IndexingService indexingService, LemmaCRUDService lemmaCRUDService) {
+        this.pageCRUDService = pageCRUDService;
+        this.siteCRUDService = siteCRUDService;
+        this.indexingService = indexingService;
+        this.lemmaCRUDService = lemmaCRUDService;
+    }
+
     public StatisticsResponse getStatistics() {
         StatisticsResponse response = new StatisticsResponse();
         StatisticsData statisticsData = new StatisticsData();

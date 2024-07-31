@@ -8,7 +8,6 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import searchengine.model.IndexKey;
 import searchengine.model.IndexModel;
-import searchengine.model.PageModel;
 
 import java.util.List;
 import java.util.Optional;

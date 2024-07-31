@@ -1,163 +1,97 @@
 package searchengine.crawlerPages;
 
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import searchengine.config.Site;
 import searchengine.config.SitesList;
 import searchengine.dto.objects.PageDto;
 import searchengine.dto.objects.SiteDto;
 import searchengine.lemmizer.Lemmizer;
-import searchengine.model.SiteModel;
 import searchengine.model.Status;
 import searchengine.services.PageCRUDService;
 import searchengine.services.SiteCRUDService;
-
 import java.io.IOException;
 import java.net.URL;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Service
 @Slf4j
 public class PageIndexer {
-    @Autowired
-    private SiteMapManager siteMapManager;
-    @Autowired
-    private PageCRUDService pageCRUDService;
-
-    @Autowired
-    private SiteCRUDService siteCRUDService;
+    private final SiteMapManager siteMapManager;
+    private final PageCRUDService pageCRUDService;
+    private final SiteCRUDService siteCRUDService;
     @Autowired
     private SitesList sitesList;
-    @Autowired
-    private Lemmizer lemmizer;
+    private final Lemmizer lemmizer;
     private static final String USER_AGENT = "SEARCH_BOT";
     private String errorMessage = null;
     private boolean success = true;
     private List<Site> listOfSite;
 
-    public void indexPage(String url) {
+    public PageIndexer(SiteMapManager siteMapManager, PageCRUDService pageCRUDService, SiteCRUDService siteCRUDService, Lemmizer lemmizer) {
+        this.siteMapManager = siteMapManager;
+        this.pageCRUDService = pageCRUDService;
+        this.siteCRUDService = siteCRUDService;
+        this.lemmizer = lemmizer;
+    }
+
+    public void indexPage(String url) throws Exception {
         if (isIndexingAllow(url)) {
             String hostName = getHostName(getUrl(url));
             log.info("Is site exist before delete page " + siteCRUDService.existsByUrl(hostName));
-            //deleteIfPageExist(url);
+
             deleteIfSiteExist(hostName);
 
             createSite(hostName);
             try {
-                //errorMessage = null;
-                siteMapManager.setIndexingActive(true);
+
+                siteMapManager.isIndexingActive.set(true);
                 log.info("Before initialization pageDto");
                 PageDto pageDto = initializationPageDto(url);
                 pageCRUDService.create(pageDto);
                 PageDto newPage = pageCRUDService.getByPathAndSitePath(pageDto.getPath(), pageDto.getSite());// Новая ошибка тут
                 lemmizer.createLemmasAndIndex(newPage);
                 log.info("After saving page dto object");
-                siteMapManager.setIndexingActive(false);
-                //updateSiteStatus(hostName, errorMessage, Status.INDEXED);
+                siteMapManager.isIndexingActive.set(false);
             } catch (Exception e) {
                 success = false;
                 errorMessage = e.getMessage();
                 updateSiteStatus(hostName, errorMessage, Status.FAILED);
-                System.out.println("-----------1--------");
-                System.out.println("Ошбика при обработке URL: " + hostName + " " + e.getMessage());
-                System.out.println("-----------------------");
-                System.out.println(e.getStackTrace());
+                log.error("Ошбика при обработке URL: " + hostName + " " + e.getMessage());
+                log.error(Arrays.toString(e.getStackTrace()));
             }
         }
-    }
-    public void indexPageForSites(String url){
-        if (isIndexingAllow(url)) {
-            String hostName = getHostName(getUrl(url));
-            log.info("Is site exist before delete page " + siteCRUDService.existsByUrl(hostName));
-            //deleteIfPageExist(url);
-            deleteIfSiteExist(hostName);
-
-            createSite(hostName);
-            try {
-                //errorMessage = null;
-                siteMapManager.setIndexingActive(true);
-                log.info("Before initialization pageDto");
-                PageDto pageDto = initializationPageDto(url);
-                pageCRUDService.create(pageDto);
-                PageDto newPage = pageCRUDService.getByPathAndSitePath(pageDto.getPath(), pageDto.getSite());// Новая ошибка тут
-                lemmizer.createLemmasAndIndex(newPage);
-                log.info("After saving page dto object");
-                siteMapManager.setIndexingActive(false);
-                //updateSiteStatus(hostName, errorMessage, Status.INDEXED);
-            } catch (Exception e) {
-                success = false;
-                errorMessage = e.getMessage();
-                updateSiteStatus(hostName, errorMessage, Status.FAILED);
-                System.out.println("-----------1--------");
-                System.out.println("Ошбика при обработке URL: " + hostName + " " + e.getMessage());
-                System.out.println("-----------------------");
-                System.out.println(e.getStackTrace());
-            }
-        }
-    }
-
-    //@Transactional
-    private void deleteIfPageExist(String urlS) {//Ошибка из-за того что передается хост, а не полный url
-        log.warn("UrlS " + urlS);
-        Boolean isPageExist = false;
-        Long pageId = null;
-        URL url = getUrl(urlS);
-        String host = getHostName(url);
-        log.info("HOST " + host);
-        String path = url.getPath();
-        log.info("PATH " + path);
-        boolean isHostExist = siteCRUDService.existsByUrl(host);
-        if (isHostExist) {
-            log.info("Count of all pages " + pageCRUDService.getAll().size());
-            isPageExist = pageCRUDService
-                    .getAll().stream().anyMatch(it -> it.getPath().equals(path) && it.getSite().equals(host));
-            log.info("Host exist. Is page exist = " + isPageExist);
-        }
-        if (isPageExist) {
-            PageDto pageDto = pageCRUDService
-                    .getAll().stream()
-                    .filter(it -> it.getPath().equals(path) && it.getSite().equals(host)).findFirst().get();
-            pageId = pageDto.getId();
-            log.info("Page exist. Page id " + pageId);
-            pageCRUDService.delete(pageId);
-        }
-
     }
 
     private void deleteIfSiteExist(String url) {
         boolean isHostExist = siteCRUDService.existsByUrl(url);
-        log.warn("Page indexer is host exist " + isHostExist);
         if (isHostExist) {
-            log.warn("deleteIfSiteExist before deleting. URL = " + url);
             SiteDto dto = siteCRUDService.findByUrlSiteDto(url);
             siteCRUDService.delete(UUID.fromString(dto.getId()));
         }
     }
 
     public Boolean isIndexingAllow(String url) {
-        log.info("Inside is indexing allow. URL - " + url);
-        Boolean isIndexingActive = siteMapManager.isIndexingActive;
-        log.info("Is indexing active - " + isIndexingActive);
+        AtomicBoolean isIndexingActive = siteMapManager.isIndexingActive;
         String host = getHostName(getUrl(url));
-        log.info("Host name " + host);
         Boolean isSiteInRepo = siteCRUDService.existsByUrl(host);
-        log.info("Is site in repository - " + isSiteInRepo);
-
-        log.info("Is site in site list " + isSiteInSiteList(host));
         if (!isSiteInRepo && isSiteInSiteList(host)) {
             log.info("Creating site ");
             createSite(host);
             isSiteInRepo = true;
         }
-        return !isIndexingActive && isSiteInRepo;
+        return !isIndexingActive.get() && isSiteInRepo;
     }
 
     private boolean isSiteInSiteList(String bigUrl) {
@@ -170,7 +104,6 @@ public class PageIndexer {
     }
 
     private String getPagePath(String url) {
-        log.info("URL " + getUrl(url).getPath());
         return getUrl(url).getPath();
     }
 
@@ -215,7 +148,7 @@ public class PageIndexer {
         return pageDto;
     }
 
-    private void updateSiteStatus(String url, String errorMessage, Status status) {
+    private void updateSiteStatus(String url, String errorMessage, Status status) throws Exception {
         SiteDto dto = siteCRUDService.getByUrl(url);
         dto.setUrl(url);
         dto.setStatus(status.name());
@@ -232,22 +165,13 @@ public class PageIndexer {
         if (optionalSite.isPresent()) {
             site = optionalSite.get();
         }
-        //Long siteId = getNewSiteId();
         SiteDto siteDto = new SiteDto();
-        //siteDto.setId(siteId);
-        //log.info("New site id is " + siteId);
+
         siteDto.setName(site.getName());
         siteDto.setUrl(site.getUrl());
         siteDto.setStatus(Status.INDEXING.name());
         log.info("Url of new site from page indexer " + site.getUrl());
         siteCRUDService.create(siteDto);
-    }
-
-    private Long getNewSiteId() {
-        if (siteCRUDService.count() == 0) {
-            return 1L;
-        }
-        return siteCRUDService.count() + 1L;
     }
 
 }

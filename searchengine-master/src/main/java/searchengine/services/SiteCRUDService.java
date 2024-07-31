@@ -3,7 +3,6 @@ package searchengine.services;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import searchengine.config.Site;
@@ -20,12 +19,10 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class SiteCRUDService  {//implements CRUDService<SiteDto>
+public class SiteCRUDService  {
 
     private final SiteRepository siteRepository;
-    @Autowired
-    private PageCRUDService pageCRUDService;
-    //@Override
+
     @Transactional
     public SiteDto getById(UUID uuid) {
         return mapToDto(siteRepository.findById(uuid).get());
@@ -40,7 +37,6 @@ public class SiteCRUDService  {//implements CRUDService<SiteDto>
         return model.getPages().size();
     }
 
-   // @Override
     @Transactional
     public Collection<SiteDto> getAll() {
         List<SiteModel> list = siteRepository.findAll();
@@ -51,14 +47,10 @@ public class SiteCRUDService  {//implements CRUDService<SiteDto>
     }
 
     @Transactional(rollbackFor = {RuntimeException.class, EntityNotFoundException.class, Exception.class})
-   // @Override
-    public void update(SiteDto item)  {
-        //Optional<SiteModel> optionalSiteModel = siteRepository.findById(Math.toIntExact(item.getId()));
-       // Integer siteRepoSize = siteRepository.findAll().size();
+    public void update(SiteDto item) throws Exception {
         String itemUrl = item.getUrl();
         Optional<SiteModel> optionalSiteModel = Optional.ofNullable(siteRepository.findByUrl(itemUrl));
         if (!optionalSiteModel.isPresent()) {
-            log.warn("Site repo size " + siteRepository.findAll().size());
             log.info("Site model with id " + item.getId() + " not found");
             throw new EntityNotFoundException("Site model with id " + item.getId() + " not found");
         } else {
@@ -70,21 +62,17 @@ public class SiteCRUDService  {//implements CRUDService<SiteDto>
                 existingSiteM.setStatus(Status.valueOf(item.getStatus()));
                 siteRepository.save(existingSiteM);
             }catch (Exception ex){
-                log.warn("Exception in update site " + ex.getMessage());
-                //throw new Exception("Trables with site update " + existingSiteM.getUrl() + ". Error message " + ex.getMessage());
+                throw new Exception("Trabls with site update " + ex.getMessage());
             }
         }
     }
 
     @Transactional
-    //@Override
     public SiteDto create(SiteDto siteDto) {
         SiteModel siteM = mapToModel(siteDto);
         siteM.setStatus(Status.INDEXING);
-       // log.info("From site CRUD service. Site status = " + siteM.getStatus());
         siteM.setStatusTime(LocalDateTime.now());
         siteM.setUrl(siteDto.getUrl());
-        //siteRepository.saveAndFlush(siteM);
         return mapToDto(siteRepository.save(siteM));
     }
     public int getLemmasCountBySiteId(UUID uuid){
@@ -96,11 +84,8 @@ public class SiteCRUDService  {//implements CRUDService<SiteDto>
     }
 
     @Transactional
-   // @Override
     public void delete(UUID uuid) {
-        log.info("Delete site " + uuid.toString());
         if (siteRepository.existsById(uuid)) {
-            //pageCRUDService.deleteBySiteUUID(uuid);
             log.warn("Delete site by id");
             siteRepository.deleteById(uuid);
         } else {
@@ -154,7 +139,6 @@ public class SiteCRUDService  {//implements CRUDService<SiteDto>
 
     public static SiteModel mapToModel(SiteDto siteDto) {
         SiteModel siteM = new SiteModel();
-        //siteM.setId(UUID.fromString(siteDto.getId()));
         siteM.setUrl(siteDto.getUrl());
         siteM.setName(siteDto.getName());
         siteM.setStatus(Status.valueOf(siteDto.getStatus()));
