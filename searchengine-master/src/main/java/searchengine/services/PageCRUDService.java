@@ -197,4 +197,11 @@ public class PageCRUDService implements CRUDService<PageDto> {
     public Boolean isPageExists(String path, String uuid) {
         return pageRepository.existsByPathAndSiteId(path, UUID.fromString(uuid));
     }
+
+    @Transactional
+    public Set<PageDto> findPagesByIds(Set<Long> pageIds) {
+        return pageRepository.findAllByIdIn(pageIds).stream()
+                .map(this::mapToDto)
+                .collect(Collectors.toSet());
+    }
 }

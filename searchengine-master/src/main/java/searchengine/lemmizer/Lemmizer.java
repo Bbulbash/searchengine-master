@@ -71,12 +71,12 @@ public class Lemmizer {
             } else {
                 optionalLemmaDto = updateLemmas.stream().filter(it -> it.getLemma().equals(data.getLemmaDto().getLemma())).findFirst();
                 if (optionalLemmaDto.isPresent() && optionalLemmaDto.get().getId() != null) {
-                   data.setLemmaDto(optionalLemmaDto.get());
+                    data.setLemmaDto(optionalLemmaDto.get());
                 } else {
 
                     LemmaDto dto = lemmaCRUDService.getByLemmaAndSiteId(data.getLemmaDto().getLemma(), siteId);
                     data.setLemmaDto(dto);
-                    if(dto.getId() == null){
+                    if (dto.getId() == null) {
                         throw new EntityNotFoundException("Lemma dto not found");
                     }
                 }
@@ -169,6 +169,12 @@ public class Lemmizer {
 
         return lemmaCountMap;
     }
+
+    public List<String> getNormalWords(String text) throws IOException {
+        List<String> cleanText = getTextAsList(text);
+        return getNormalWords(cleanText);
+    }
+
     public List<String> getTextAsList(String text) throws IOException {
         //String regex = "[^а-яА-Я -]";
         String regex = "[^а-яА-Яa-zA-Z -]";
@@ -201,7 +207,7 @@ public class Lemmizer {
                 } catch (Exception e) {
                     log.error("Error processing Russian word: " + lowerCaseWord, e);
                 }
-            } else if(isEnglishWord(lowerCaseWord)){
+            } else if (isEnglishWord(lowerCaseWord)) {
 
                 try {
                     List<String> morphInfoList = luceneMorphologyEN.getMorphInfo(lowerCaseWord);
@@ -220,21 +226,32 @@ public class Lemmizer {
         }
         return words;
     }
+
     private boolean isRussianWord(String word) {
         return word.matches("[а-яА-Я]+");
     }
-    private boolean isEnglishWord(String word){return word.matches("[a-zA-Z]+");}
 
-    public List<String> getNormalWords(List<String> words) throws IOException {
+    private boolean isEnglishWord(String word) {
+        return word.matches("[a-zA-Z]+");
+    }
+
+    public List<String> getNormalWords(List<String> words) throws IOException {//Макс: лучше переписать на регулярки
         LuceneMorphology luceneMorphologyRU = new RussianLuceneMorphology();
         LuceneMorphology luceneMorphologyEN = new EnglishLuceneMorphology();
         List<String> normalWords = new ArrayList<>();
         for (String word : words) {
-            String normalForm;
-            if(isRussianWord(word)){
-                normalForm = luceneMorphologyRU.getNormalForms(word).get(0);
-            }else{
-                normalForm = luceneMorphologyEN.getNormalForms(word).get(0);
+            List<String> normalForms;
+            String normalForm = new String();
+            String lowerCaseWord = word.toLowerCase();
+            if (isRussianWord(lowerCaseWord)) {
+                normalForms = luceneMorphologyRU.getNormalForms(lowerCaseWord);
+                log.warn("Normal forms " + normalForms);
+                normalForm = normalForms.get(0);
+            } else if (isEnglishWord(lowerCaseWord)) {
+                normalForms = luceneMorphologyEN.getNormalForms(lowerCaseWord);
+
+                log.warn("Normal forms " + normalForms);
+                normalForm = normalForms.get(0);//getFirst();
             }
             if (normalForm.isEmpty()) {
                 continue;
@@ -251,6 +268,15 @@ public class Lemmizer {
             }
         }
         return false;
+    }
+    public String replaceAuxiliarySymbols(String string) {
+        String regexToRemoveLatinsAndPunctuation = "[^а-яА-Я\s]";
+        String regexToRemoveMultipleSpaces = "[\\s]{2,}";
+        return string
+                .toLowerCase(Locale.ROOT)
+                .replaceAll(regexToRemoveLatinsAndPunctuation, " ")
+                .trim()
+                .replaceAll(regexToRemoveMultipleSpaces, " ");
     }
 
 }

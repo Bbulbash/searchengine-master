@@ -1,6 +1,11 @@
 package searchengine.services;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.en.EnglishAnalyzer;
+import org.apache.lucene.analysis.ru.RussianAnalyzer;
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,11 +17,15 @@ import searchengine.dto.objects.LemmaDto;
 import searchengine.dto.objects.PageDto;
 import searchengine.dto.statistics.SearchResult;
 import searchengine.lemmizer.Lemmizer;
+
 import java.io.IOException;
+import java.io.StringReader;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
+import static searchengine.dto.statistics.SnippetBuilder.getSnippetFromPage;
 
 @Service
 @Slf4j
@@ -29,6 +38,7 @@ public class SearchService {
     private final IndexCRUDService indexCRUDService;
     private final LemmaCRUDService lemmaCRUDService;
     private static final int SNIPPET_LENGTH = 300;
+    private MorphologyService morphologyService;
 
     public SearchService(PageCRUDService pageCRUDService, SiteCRUDService siteCRUDService, Lemmizer lemmizer, IndexCRUDService indexCRUDService, LemmaCRUDService lemmaCRUDService) {
         this.pageCRUDService = pageCRUDService;
@@ -53,8 +63,8 @@ public class SearchService {
         int endIndex = Math.min(offset + limit, total);
         List<SearchResult> pagedResults = results.stream().toList().subList(offset, endIndex);
         List<SearchResult> cleanPagedResults = new ArrayList<>();
-        for (SearchResult result : pagedResults){
-            if(!result.getSnippet().equals("")){
+        for (SearchResult result : pagedResults) {
+            if (!result.getSnippet().equals("")) {
                 cleanPagedResults.add(result);
             }
         }
@@ -69,17 +79,18 @@ public class SearchService {
 
     public Set<SearchResult> search(String text, String url) throws IOException, InterruptedException {
         HashMap<PageDto, Float> sortedPages = new HashMap<>();
-        if(url != null){
+        if (url != null) {
             sortedPages = getSortedPages(text, url);
-        }else{
+        } else {
             List<Site> sites = sitesList.getSites();
-            for(Site site : sites){
+            for (Site site : sites) {
                 sortedPages.putAll(getSortedPages(text, site.getUrl()));
             }
         }
 
         return convertToSearchResult(sortedPages, text);
     }
+
     private HashMap<PageDto, Float> getSortedPages(String text, String url) throws IOException {
         List<PageDto> pagesBySite = pageCRUDService.getPagesBySiteURL(url);
         Map<String, Integer> lemmasList = getLemmasList(text, url, pagesBySite);
@@ -90,9 +101,11 @@ public class SearchService {
         return getPagesSortByRelevance(relevantPages);
     }
 
-    private Set<SearchResult> convertToSearchResult(HashMap<PageDto, Float> sortedPages, String query) throws IOException, InterruptedException {
+    private Set<SearchResult> convertToSearchResult(HashMap<PageDto, Float> sortedPages, String query)
+            throws IOException {
         Set<SearchResult> result = new HashSet<>();
         for (Map.Entry<PageDto, Float> entry : sortedPages.entrySet()) {
+
             PageDto page = entry.getKey();
             float relevance = entry.getValue();
             String siteUrl = page.getSite();
@@ -103,9 +116,8 @@ public class SearchService {
             searchResult.setSiteName(siteName);
             searchResult.setUrl(page.getPath());
             searchResult.setTitle(getPageTitle(page));
-            searchResult.setSnippet(generateSnippet(page.getContent(), query));
             searchResult.setRelevance(relevance);
-            if(searchResult.getSnippet().equals("")) break;
+            if (searchResult.getSnippet().equals("")) break;
 
             result.add(searchResult);
         }
@@ -117,6 +129,7 @@ public class SearchService {
         Document doc = Jsoup.parse(html);
         return doc.title();
     }
+
 
     private String generateSnippet(String content, String query) throws IOException {
 
@@ -131,7 +144,10 @@ public class SearchService {
         return snippet;
     }
 
-    private String highlightKeyword(String text, String keyword) {
+    private static String highlightKeyword(String text, String keyword) {
+        if (keyword.isEmpty()) {
+            return text;
+        }
         String regex = "(?i)(" + Pattern.quote(keyword) + ")";
         Pattern pattern = Pattern.compile(regex);
         Matcher matcher = pattern.matcher(text);
@@ -141,13 +157,79 @@ public class SearchService {
             matcher.appendReplacement(result, "<b>" + matcher.group(1) + "</b>");
         }
         matcher.appendTail(result);
+        if (!result.isEmpty()) {
+            return result.toString();
+        }
 
-        return result.toString();
+
+        Set<String> variations = getWordVariations(keyword);
+
+        result = new StringBuffer();
+        boolean found = processTextWithVariations(text, variations, result);
+
+        if (found) {
+            return result.toString();
+        } else {
+            return highlightKeyword(text, keyword.substring(0, keyword.length() - 1));
+        }
+    }
+
+    private static boolean processTextWithVariations(String text, Set<String> variations, StringBuffer result) {
+        for (String variation : variations) {
+            String regex = "(?i)(" + Pattern.quote(variation) + ")";
+            Pattern pattern = Pattern.compile(regex);
+            Matcher matcher = pattern.matcher(text);
+
+            boolean found = false;
+            while (matcher.find()) {
+                found = true;
+                matcher.appendReplacement(result, "<b>" + matcher.group(1) + "</b>");
+            }
+            matcher.appendTail(result);
+
+            if (found) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static Set<String> getWordVariations(String keyword) {
+        Set<String> variations = new HashSet<>();
+        variations.add(keyword);
+
+        Analyzer analyzer = getAnalyzerForWord(keyword);
+
+        try (TokenStream tokenStream = analyzer.tokenStream(null, new StringReader(keyword))) {
+            CharTermAttribute attr = tokenStream.addAttribute(CharTermAttribute.class);
+            tokenStream.reset();
+
+            while (tokenStream.incrementToken()) {
+                variations.add(attr.toString());
+            }
+
+            tokenStream.end();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return variations;
+    }
+
+    private static Analyzer getAnalyzerForWord(String word) {
+        if (isRussian(word)) {
+            return new RussianAnalyzer();
+        } else {
+            return new EnglishAnalyzer();
+        }
+    }
+
+    private static boolean isRussian(String word) {
+        return word.matches("[А-Яа-яЁё]+");
     }
 
     private String createSnippet(String text, String[] keywords) throws IOException {
         String snippet = "";
-
         for (String keyword : keywords) {
             int index = text.toLowerCase().indexOf(keyword.toLowerCase());
             if (index != -1) {
@@ -159,22 +241,23 @@ public class SearchService {
                 if (end < text.length()) snippet += "...";
                 break;
             }
-        }
+            if (snippet.isEmpty()) {
+                List<String> textAsList = lemmizer.getTextAsList(text);
+                List<String> normalFormText = lemmizer.getNormalWords(textAsList);
+                for (String keyword1 : keywords) {
+                    int index1 = normalFormText.indexOf(keyword1.toLowerCase());
+                    if (index1 != -1) {
 
-        if (snippet.isEmpty()) {
 
-            List<String> textAsList = lemmizer.getTextAsList(text);
-            List<String> normalFormText = lemmizer.getNormalWords(textAsList);
-            for (String keyword : keywords) {
-                int index = normalFormText.indexOf(keyword.toLowerCase());
-                if (index != -1) {
-                    int start = Math.max(0, index - SNIPPET_LENGTH / 2);
-                    int end = Math.min(text.length(), index + SNIPPET_LENGTH / 2);
+                        int indexOf = text.indexOf(textAsList.get(index1));
+                        int start = text.indexOf(textAsList.get(index1)) - SNIPPET_LENGTH;
+                        int end = text.indexOf(textAsList.get(index1)) + SNIPPET_LENGTH;
 
-                    snippet = text.substring(start, end);
-                    if (start > 0) snippet = "..." + snippet;
-                    if (end < text.length()) snippet += "...";
-                    break;
+                        snippet = text.substring(start, end);
+                        if (start > 0) snippet = "..." + snippet;
+                        if (end < text.length()) snippet += "...";
+                        break;
+                    }
                 }
             }
         }
@@ -246,14 +329,17 @@ public class SearchService {
         Map<Long, Set<LemmaDto>> lemmasByPages = lemmaCRUDService.findLemmasByPageIds(pageIds);
         for (PageDto dto : pagesBySite) {
             Set<LemmaDto> lemmasByPage = lemmasByPages.get(dto.getId());
-            Set<String> lemmasName = lemmasByPage.stream()
-                    .map(LemmaDto::getLemma)
-                    .collect(Collectors.toSet());
-            for (String lemma : dirtyLemmas) {
-                if (lemmasName.contains(lemma)) {
-                    dirtyMap.put(lemma, dirtyMap.getOrDefault(lemma, 0) + 1);
+            if (lemmasByPage != null) {
+                Set<String> lemmasName = lemmasByPage.stream()
+                        .map(LemmaDto::getLemma)
+                        .collect(Collectors.toSet());
+                for (String lemma : dirtyLemmas) {
+                    if (lemmasName.contains(lemma)) {
+                        dirtyMap.put(lemma, dirtyMap.getOrDefault(lemma, 0) + 1);
+                    }
                 }
             }
+
         }
         for (String lemma : dirtyMap.keySet()) {
             int count = dirtyMap.get(lemma);
@@ -288,7 +374,10 @@ public class SearchService {
             for (PageDto pageDto : pagesBySite) {
 
                 Set<LemmaDto> lemmaDtos = mapPageLemmas.get(pageDto.getId());
-                Set<String> lemmaNames = lemmaDtos.stream().map(LemmaDto::getLemma).collect(Collectors.toSet());
+                Set<String> lemmaNames = new HashSet<>();
+                if (lemmaDtos != null) {
+                    lemmaNames = lemmaDtos.stream().map(LemmaDto::getLemma).collect(Collectors.toSet());
+                }
 
                 if (lemmaNames.contains(lemma)) {
                     lemmaPages.add(pageDto);
@@ -309,4 +398,5 @@ public class SearchService {
 
         return relevantPages;
     }
+
 }

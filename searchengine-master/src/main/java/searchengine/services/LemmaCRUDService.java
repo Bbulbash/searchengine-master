@@ -56,6 +56,16 @@ public class LemmaCRUDService implements CRUDService<LemmaDto> {
         }
         return null;
     }
+    @Transactional
+    public Set<LemmaDto> findByLemma(String lemma){
+        List<LemmaModel> models = lemmaRepository.findByLemma(lemma);
+        return models.stream().map(this::mapToDto).collect(Collectors.toSet());
+    }
+
+    public LemmaDto findByLemmaAndSiteUrl(String lemma, String siteUrl) {
+        UUID uuid = siteCRUDService.findByUrl(siteUrl).getId();
+        return getByLemmaAndSiteId(lemma, uuid);
+    }
 
     @Override
     @Transactional

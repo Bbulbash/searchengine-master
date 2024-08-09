@@ -8,6 +8,9 @@ import searchengine.dto.statistics.StatisticsCollector;
 import searchengine.dto.statistics.StatisticsResponse;
 import searchengine.services.IndexingService;
 import searchengine.services.SearchService;
+import searchengine.services.SearchServise2;
+import searchengine.services.SearchServise3;
+
 import java.util.Map;
 
 @RestController
@@ -17,11 +20,13 @@ public class ApiController {
     private final IndexingService indexingService;
     private final StatisticsCollector statisticsCollector;
     private final SearchService searchService;
+    private final SearchServise3 searchServise3;
 
-    public ApiController( IndexingService indexingService, StatisticsCollector statisticsCollector, SearchService searchService) {
+    public ApiController(IndexingService indexingService, StatisticsCollector statisticsCollector, SearchService searchService, SearchServise3 searchServise3) {
         this.indexingService = indexingService;
         this.statisticsCollector = statisticsCollector;
         this.searchService = searchService;
+        this.searchServise3 = searchServise3;
     }
 
     @GetMapping("/statistics")
@@ -51,7 +56,7 @@ public class ApiController {
             @RequestParam(name = "limit", defaultValue = "20") int limit) {
 
         try {
-            Map<String, Object> response = searchService.search(query, site, offset, limit);
+            Map<String, Object> response = searchServise3.search(query, site, offset, limit);
             return ResponseEntity.ok(response);
 
         } catch (IllegalArgumentException | IllegalStateException e) {

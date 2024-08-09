@@ -118,5 +118,15 @@ public class IndexCRUDService {
 
         return indexesByPageId;
     }
+    @Transactional
+    public Set<IndexDto> findAllByLemmaId(Set<Long> lemmaIds){
+        List<IndexModel> models =  indexRepository.findAllByLemmaIds(lemmaIds);
+        Set<IndexDto> indexDtos = new HashSet<>();
+        for (IndexModel model : models){
+            indexDtos.add(mapToDto(model));
+        }
+        return indexDtos;
+
+    }
 
 }

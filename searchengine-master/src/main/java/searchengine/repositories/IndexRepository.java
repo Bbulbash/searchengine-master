@@ -28,4 +28,6 @@ public interface IndexRepository extends JpaRepository<IndexModel, IndexKey> {
     List<IndexModel> findAllByPageId(@Param("pageId") Long pageId);
     @Query("SELECT i FROM IndexModel i WHERE i.id.pageId IN :pageIds")
     List<IndexModel> findAllByPageIds(@Param("pageIds") Set<Long> pageIds);
+    @Query("SELECT i FROM IndexModel i WHERE i.id.lemmaId IN :lemmaIds")
+    List<IndexModel> findAllByLemmaIds(@Param("lemmaIds")Set<Long> lemmaIds);
 }
