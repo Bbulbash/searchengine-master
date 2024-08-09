@@ -15,7 +15,6 @@ import java.util.Set;
 
 @Repository
 public interface IndexRepository extends JpaRepository<IndexModel, IndexKey> {
-    Optional<IndexModel> findByKey(IndexKey key);
     List<IndexModel> findByPageId(Long pageId);
     @Query("SELECT COUNT(i) > 0 FROM IndexModel i WHERE i.id.pageId = :pageId AND i.id.lemmaId = :lemmaId")
     Boolean existsByKey(@Param("pageId") Long pageId, @Param("lemmaId") Long lemmaId);
@@ -24,8 +23,6 @@ public interface IndexRepository extends JpaRepository<IndexModel, IndexKey> {
     @Transactional
     @Query("DELETE FROM IndexModel i WHERE i.id.pageId = :pageId AND i.id.lemmaId = :lemmaId")
     void deleteByIndexKey(@Param("pageId") Long pageId, @Param("lemmaId") Long lemmaId);
-    @Query("SELECT i FROM IndexModel i WHERE i.key.pageId = :pageId")
-    List<IndexModel> findAllByPageId(@Param("pageId") Long pageId);
     @Query("SELECT i FROM IndexModel i WHERE i.id.pageId IN :pageIds")
     List<IndexModel> findAllByPageIds(@Param("pageIds") Set<Long> pageIds);
     @Query("SELECT i FROM IndexModel i WHERE i.id.lemmaId IN :lemmaIds")

@@ -11,7 +11,6 @@ import java.util.UUID;
 @Repository
 public interface PageRepository extends JpaRepository<PageModel, Integer> {
     List<PageModel> findByPathAndSiteUrl(String url, String sitePath);
-    List<PageModel> findAllBySiteId(UUID uuid);
     Boolean existsByPathAndSiteId(String path, UUID siteId);
     Set<PageModel> findAllByIdIn(Set<Long> ids);
 }

@@ -147,18 +147,6 @@ public class SiteCRUDService  {
         return siteM;
     }
 
-    public static SiteDto mapToDto(searchengine.config.Site site) {
-        SiteDto siteDto = new SiteDto();
-        siteDto.setName(site.getName());
-        siteDto.setUrl(site.getUrl());
-        return siteDto;
-    }
-    private static SiteModel setNewValueToEntity(SiteDto dto, SiteModel model){
-        model.setStatus(Status.valueOf(dto.getStatus()));
-        model.setStatusTime(LocalDateTime.parse(dto.getStatusTime()));
-        model.setLastError(dto.getLastError());
-        return model;
-    }
     public SiteDto generateSiteDto(Site site){
         SiteDto dto = new SiteDto();
         dto.setUrl(site.getUrl());

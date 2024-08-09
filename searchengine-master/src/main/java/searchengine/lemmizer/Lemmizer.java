@@ -143,7 +143,6 @@ public class Lemmizer {
             IndexDto dto = new IndexDto();
             dto.setPageId(data.getPageId());
             if (data.getLemmaDto().getId() == null) {
-                log.info("Lemma id почему-то null");
                 throw new EntityNotFoundException("ID LemmaDto is null");
             }
             dto.setLemmaId(Math.toIntExact(data.getLemmaDto().getId()));
@@ -155,12 +154,11 @@ public class Lemmizer {
 
     public Map<String, Integer> getLemmasList(String text) throws IOException {
         Map<String, Integer> lemmaCountMap = new HashMap<>();
-        log.info("Text " + text);
+
         List<String> cleanText = getTextAsList(text);
         List<String> wordList = getNormalWords(cleanText);
         for (String word : wordList) {
             if (lemmaCountMap.containsKey(word)) {
-                log.info("Word " + word + " lemma count " + lemmaCountMap.get(word));
                 lemmaCountMap.put(word, lemmaCountMap.get(word) + 1);
             } else {
                 lemmaCountMap.put(word, 1);
@@ -176,7 +174,6 @@ public class Lemmizer {
     }
 
     public List<String> getTextAsList(String text) throws IOException {
-        //String regex = "[^а-яА-Я -]";
         String regex = "[^а-яА-Яa-zA-Z -]";
         String regex1 = "[ ]{2,}";
         String cleanText0 = text.replaceAll(regex, "");
@@ -268,15 +265,6 @@ public class Lemmizer {
             }
         }
         return false;
-    }
-    public String replaceAuxiliarySymbols(String string) {
-        String regexToRemoveLatinsAndPunctuation = "[^а-яА-Я\s]";
-        String regexToRemoveMultipleSpaces = "[\\s]{2,}";
-        return string
-                .toLowerCase(Locale.ROOT)
-                .replaceAll(regexToRemoveLatinsAndPunctuation, " ")
-                .trim()
-                .replaceAll(regexToRemoveMultipleSpaces, " ");
     }
 
 }

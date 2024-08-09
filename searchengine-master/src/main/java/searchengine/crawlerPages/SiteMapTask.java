@@ -20,7 +20,6 @@ import java.net.URL;
 @Slf4j
 public class SiteMapTask extends RecursiveTask<TaskResult> {
     private final SiteMapManager siteMapManager;
-    private static final Object lock = new Object();
     private static final String USER_AGENT = "SEARCH_BOT";
     private final String url;
     private final int level;

@@ -142,11 +142,8 @@ public class SearchServise3 {
                 if (rankSum > maxRelevancy) {
                     maxRelevancy = rankSum;
                 }
-            } else {
-                log.error("PAGE ID IS NULL");
             }
         }
-
         for (Map.Entry<PageDto, Float> entry : absoluteRelevancies.entrySet()) {
             PageDto page = entry.getKey();
             float absoluteRelevancy = entry.getValue();
@@ -201,7 +198,6 @@ public class SearchServise3 {
                 int snippetEnd = Math.min(text.length(), indexRoot + 100);
                 Pattern pattern = Pattern.compile("\\b" + root + "[\\w]*\\b");
                 Matcher matcher = pattern.matcher(text);
-
                 snippet = text.substring(snippetStart, snippetEnd).trim();
                 highlightedSnippet = snippet.replace(root, "<b>" + root + "</b>");
                 System.out.println("matcher.find() " + matcher.find());
@@ -237,7 +233,6 @@ public class SearchServise3 {
                 root = matcher.group(1);
                 listRoot.add(root);
             }
-            System.out.println("Слово: " + word + ", Корень: " + root);
         }
         return listRoot;
     }

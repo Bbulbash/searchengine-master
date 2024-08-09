@@ -207,35 +207,4 @@ public class LemmaCRUDService implements CRUDService<LemmaDto> {
         return model;
     }
 
-    public Map<Long, Set<LemmaDto>> findLemmasByPageIds(Set<Long> pageIds) {
-        String url = pageCRUDService.getById(pageIds.stream().findFirst().orElseThrow()).getSite();
-
-        UUID uuid = siteCRUDService.findByUrl(url).getId();
-
-        Map<Long, Set<IndexDto>> indexMap = indexCRUDService.findIndexesByPageIds(pageIds);
-
-        List<LemmaModel> lemmas = lemmaRepository.findLemmasBySiteId(uuid);
-
-        Map<Long, LemmaDto> lemmaDtoMap = lemmas.stream()
-                .map(this::mapToDto)
-                .collect(Collectors.toMap(LemmaDto::getId, lemmaDto -> lemmaDto));
-
-        Map<Long, Set<LemmaDto>> lemmasByPageId = new HashMap<>();
-
-        for (Map.Entry<Long, Set<IndexDto>> entry : indexMap.entrySet()) {
-            Long pageId = entry.getKey();
-            Set<IndexDto> indices = entry.getValue();
-
-            for (IndexDto index : indices) {
-                Long lemmaId = Long.valueOf(index.getLemmaId());
-                if (lemmaDtoMap.containsKey(lemmaId)) {
-                    lemmasByPageId
-                            .computeIfAbsent(pageId, k -> new HashSet<>())
-                            .add(lemmaDtoMap.get(lemmaId));
-                }
-            }
-        }
-
-        return lemmasByPageId;
-    }
 }

@@ -79,16 +79,6 @@ public class PageCRUDService implements CRUDService<PageDto> {
             throw new RuntimeException("An unexpected error occurred while finding the page by path: " + pagePath, ex);
         }
     }
-    @Transactional
-    public List<PageDto> getPagesBySiteURL(String url){
-        UUID uuid = siteCRUDService.findByUrl(url).getId();
-        List<PageModel> models = pageRepository.findAllBySiteId(uuid);
-        List<PageDto> dto = new ArrayList<>();
-        for (PageModel model : models){
-            dto.add(mapToDto(model));
-        }
-        return dto;
-    }
 
     @Transactional
     @Override
