@@ -13,6 +13,7 @@ import searchengine.config.Site;
 import searchengine.crawlerPages.PageIndexer;
 import searchengine.crawlerPages.SiteMapManager;
 import searchengine.model.SiteModel;
+
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -33,6 +34,7 @@ public class IndexingService {
     public void init() {
         executorService = Executors.newFixedThreadPool(10);
     }
+
     public IndexingService(SiteCRUDService siteCRUDService, SiteMapManager siteMapManager, PageIndexer pageIndexer) {
         this.siteCRUDService = siteCRUDService;
         this.siteMapManager = siteMapManager;
@@ -60,6 +62,7 @@ public class IndexingService {
             log.error("Exception during site maps creation", e);
         }
     }
+
     public boolean isIndexingActive() {
         return siteMapManager.isIndexingActive();
     }
@@ -78,7 +81,7 @@ public class IndexingService {
         pageIndexer.indexPage(url);
     }
 
-    public void startIndexing(){
+    public void startIndexing() {
         executorService.submit(() -> {
             createSitesMaps();
         });
@@ -100,10 +103,9 @@ public class IndexingService {
         if (isIndexingActive) {
             stopIndexing();
             return new ResponseEntity<>(Map.of("result", true), HttpStatus.OK);
-        } else {
-            return new ResponseEntity<>
-                    (Map.of("result", false, "error", "Индексация не запущена"), HttpStatus.CONFLICT);
         }
+        return new ResponseEntity<>
+                (Map.of("result", false, "error", "Индексация не запущена"), HttpStatus.CONFLICT);
     }
 
     public ResponseEntity<?> indexPage(String url) throws Exception {
@@ -112,11 +114,10 @@ public class IndexingService {
         if (isAllowIndexingPage) {
             startIndexingPage(url);
             return new ResponseEntity<>(Map.of("result", true), HttpStatus.OK);
-        } else {
-            return new ResponseEntity<>
-                    (Map.of("result", false, "error", "Данная страница находится за пределами сайтов,\n" +
-                            "указанных в конфигурационном файле"), HttpStatus.CONFLICT);
         }
+        return new ResponseEntity<>
+                (Map.of("result", false, "error", "Данная страница находится за пределами сайтов,\n" +
+                        "указанных в конфигурационном файле"), HttpStatus.CONFLICT);
     }
 
 }

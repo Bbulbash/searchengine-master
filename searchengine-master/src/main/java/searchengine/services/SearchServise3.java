@@ -115,12 +115,12 @@ public class SearchServise3 {
         }
 
         LemmaDto firstLemma = lemmaIterator.next();
-        Set<PageDto> pages = getPagesWithFirstLemma(firstLemma);
+        Set<PageDto> pages = getPagesWithLemma(firstLemma);
         Set<PageDto> pagesWithFirstLemma = new HashSet<>(pages);
 
         while (lemmaIterator.hasNext()) {
             LemmaDto nextLemma = lemmaIterator.next();
-            Set<PageDto> nextPages = getPagesWithFirstLemma(nextLemma);
+            Set<PageDto> nextPages = getPagesWithNextLemma(pages, nextLemma);
             pages.retainAll(nextPages);
         }
         if (pages.size() == 0) return pagesWithFirstLemma;
@@ -200,7 +200,6 @@ public class SearchServise3 {
                 Matcher matcher = pattern.matcher(text);
                 snippet = text.substring(snippetStart, snippetEnd).trim();
                 highlightedSnippet = snippet.replace(root, "<b>" + root + "</b>");
-                System.out.println("matcher.find() " + matcher.find());
                 isFirst = false;
             } else if (snippet.contains(root)) {
                 if (snippet != null && snippet.contains(root)) {
@@ -222,6 +221,7 @@ public class SearchServise3 {
 
 
     public static List<String> getRoot(String query) {
+
         List<String> queryAsList = List.of(query.split("\\s+"));
         List<String> listRoot = new ArrayList<>();
         String regex = "(.*?)(а|ей|ий|овать|ировать|ать|ить|еть|ыть|ывать|авать|анность|ость|нение|ание|ение|ина|она|ов|е|и|о|у|ю|я|ый|ой|ая|ее|ие|ые|ое|ого|ому|им|ым|их|ых|ее|ия|ья|ing|ed|s|es|er|ly|able|ible|ness|ment|ful|less|ness|tion|sion|able|ible|al|ial|ate|en|ify|ise|ize)?$";
@@ -248,15 +248,26 @@ public class SearchServise3 {
         return urlPageCountMap;
     }
 
-    private Set<PageDto> getPagesWithFirstLemma(LemmaDto dto) {
-        Set<Long> lemmaId = new HashSet<>();
-        lemmaId.add(dto.getId());
+    private Set<PageDto> getPagesWithLemma(LemmaDto dto) {
+        Set<Long> lemmaId = Collections.singleton(dto.getId());
         Set<IndexDto> indexDtos = indexCRUDService.findAllByLemmaId(lemmaId);
         Set<Long> pageIds = new HashSet<>();
         for (IndexDto index : indexDtos) {
             pageIds.add(index.getPageId());
         }
         return pageCRUDService.findPagesByIds(pageIds);
+    }
+
+    private Set<PageDto> getPagesWithNextLemma(Set<PageDto> pages, LemmaDto lemmaDto) {
+        Set<PageDto> pagesWithOldAndNextLemmas = new HashSet<>();
+        Set<PageDto> pagesThisLemma = getPagesWithLemma(lemmaDto);
+
+        for (PageDto pageDto : pagesThisLemma) {
+            Long pageDtoId = pageDto.getId();
+            if(pages.stream().anyMatch(it -> it.getId().equals(pageDtoId))) pagesWithOldAndNextLemmas.add(pageDto);
+        }
+        if (pagesWithOldAndNextLemmas.isEmpty()) return pages;
+        return pagesWithOldAndNextLemmas;
     }
 
     private float calculateAbsoluteRelevancy(Set<IndexDto> indexByPage) {
