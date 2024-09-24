@@ -177,6 +177,7 @@ public class SearchServise3 {
             searchResult.setUrl(page.getPath());
             searchResult.setTitle(getPageTitle(page));
             searchResult.setSnippet(generateSnippet(page.getContent(), query));
+            String snip = searchResult.getSnippet();
             searchResult.setRelevance(relevance);
             if (searchResult.getSnippet() == null) break;
 
@@ -227,11 +228,12 @@ public class SearchServise3 {
         String regex = "(.*?)(а|ей|ий|овать|ировать|ать|ить|еть|ыть|ывать|авать|анность|ость|нение|ание|ение|ина|она|ов|е|и|о|у|ю|я|ый|ой|ая|ее|ие|ые|ое|ого|ому|им|ым|их|ых|ее|ия|ья|ing|ed|s|es|er|ly|able|ible|ness|ment|ful|less|ness|tion|sion|able|ible|al|ial|ate|en|ify|ise|ize)?$";
         Pattern pattern = Pattern.compile(regex);
         for (String word : queryAsList) {
+
             Matcher matcher = pattern.matcher(word);
             String root = "";
             if (matcher.find()) {
                 root = matcher.group(1);
-                listRoot.add(root);
+                if (root.length() > 2) listRoot.add(root);
             }
         }
         return listRoot;
@@ -264,7 +266,7 @@ public class SearchServise3 {
 
         for (PageDto pageDto : pagesThisLemma) {
             Long pageDtoId = pageDto.getId();
-            if(pages.stream().anyMatch(it -> it.getId().equals(pageDtoId))) pagesWithOldAndNextLemmas.add(pageDto);
+            if (pages.stream().anyMatch(it -> it.getId().equals(pageDtoId))) pagesWithOldAndNextLemmas.add(pageDto);
         }
         if (pagesWithOldAndNextLemmas.isEmpty()) return pages;
         return pagesWithOldAndNextLemmas;
