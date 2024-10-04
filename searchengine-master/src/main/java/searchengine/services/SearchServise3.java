@@ -108,7 +108,7 @@ public class SearchServise3 {
 
     }
 
-    private Set<PageDto> filterPagesByAllLemmas(Set<LemmaDto> lemmaDtos) {
+    private Set<PageDto> filterPagesByAllLemmas(Set<LemmaDto> lemmaDtos) throws IOException {
         Iterator<LemmaDto> lemmaIterator = lemmaDtos.iterator();
         if (!lemmaIterator.hasNext()) {
             return Collections.emptySet();
@@ -124,7 +124,6 @@ public class SearchServise3 {
             pages.retainAll(nextPages);
         }
         if (pages.size() == 0) return pagesWithFirstLemma;
-
         return pages;
     }
 
@@ -176,7 +175,7 @@ public class SearchServise3 {
             searchResult.setSiteName(siteName);
             searchResult.setUrl(page.getPath());
             searchResult.setTitle(getPageTitle(page));
-            searchResult.setSnippet(generateSnippet(page.getContent(), query));
+            searchResult.setSnippet(findQueryInText(page.getContent(), query));
             String snip = searchResult.getSnippet();
             searchResult.setRelevance(relevance);
             if (searchResult.getSnippet() == null) break;
@@ -186,59 +185,36 @@ public class SearchServise3 {
         return result;
     }
 
-    private static String generateSnippet(String text, String query) {
-        List<String> lemmasRoot = getRoot(query);
-        String snippet = null;
-        boolean isFirst = true;
-        boolean contains = false;
-        String highlightedSnippet = null;
-        for (String root : lemmasRoot) {
-            if (isFirst) {
-                int indexRoot = text.indexOf(root);
-                int snippetStart = Math.max(0, indexRoot - 100);
-                int snippetEnd = Math.min(text.length(), indexRoot + 100);
-                Pattern pattern = Pattern.compile("\\b" + root + "[\\w]*\\b");
-                Matcher matcher = pattern.matcher(text);
-                snippet = text.substring(snippetStart, snippetEnd).trim();
-                highlightedSnippet = snippet.replace(root, "<b>" + root + "</b>");
-                isFirst = false;
-            } else if (snippet.contains(root)) {
-                if (snippet != null && snippet.contains(root)) {
-                    highlightedSnippet = highlightedSnippet.replace(root, "<b>" + root + "</b>");
+    private String findQueryInText(String text, String query) throws IOException {
+        List<String> normalFormsText = lemmizer.getNormalWords(text);
+        List<String> normalQuery = lemmizer.getNormalWords(query);
+        List<String> commonElements = new ArrayList<>(normalFormsText);
+        commonElements.retainAll(normalQuery);
+        List<String> textAsList = lemmizer.getTextAsList(text);
+        boolean isFirst = false;
+        Integer indexWord = 0;
+        for (String word : textAsList) {
+            List<String> wordAsList = new ArrayList<>();
+            wordAsList.add(word);
+            if (commonElements.contains(lemmizer.getNormalWords(wordAsList).get(0))) {
+                text = text.replace(word, "<b>" + word + "</b>");
+                if (!isFirst) {
+                    isFirst = true;
+                    indexWord = text.indexOf(word);
                 }
+
             }
         }
-        for (String lemma : lemmasRoot) {
-            if (highlightedSnippet.contains(lemma)) contains = true;
-        }
+        int snippetStart = Math.max(0, indexWord - 100);
+        int snippetEnd = Math.min(text.length(), indexWord + 100);
+        String snippet = text.substring(snippetStart, snippetEnd).trim();
 
-        if (!contains) return null;
-
-        if (highlightedSnippet != null) {
-            highlightedSnippet = "..." + highlightedSnippet + "...";
+        if (snippet != null) {
+            snippet = "..." + snippet + "...";
         }
-        return highlightedSnippet.toString();
+        return snippet;
+
     }
-
-
-    public static List<String> getRoot(String query) {
-
-        List<String> queryAsList = List.of(query.split("\\s+"));
-        List<String> listRoot = new ArrayList<>();
-        String regex = "(.*?)(а|ей|ий|овать|ировать|ать|ить|еть|ыть|ывать|авать|анность|ость|нение|ание|ение|ина|она|ов|е|и|о|у|ю|я|ый|ой|ая|ее|ие|ые|ое|ого|ому|им|ым|их|ых|ее|ия|ья|ing|ed|s|es|er|ly|able|ible|ness|ment|ful|less|ness|tion|sion|able|ible|al|ial|ate|en|ify|ise|ize)?$";
-        Pattern pattern = Pattern.compile(regex);
-        for (String word : queryAsList) {
-
-            Matcher matcher = pattern.matcher(word);
-            String root = "";
-            if (matcher.find()) {
-                root = matcher.group(1);
-                if (root.length() > 2) listRoot.add(root);
-            }
-        }
-        return listRoot;
-    }
-
 
     private Map<String, Integer> getUrlPageCountMap() {
         List<Site> sites = sitesList.getSites();

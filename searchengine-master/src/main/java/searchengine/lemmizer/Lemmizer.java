@@ -5,9 +5,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.lucene.morphology.LuceneMorphology;
 import org.apache.lucene.morphology.english.EnglishLuceneMorphology;
 import org.apache.lucene.morphology.russian.RussianLuceneMorphology;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import searchengine.dto.objects.IndexData;
 import searchengine.dto.objects.IndexDto;
@@ -26,10 +23,13 @@ public class Lemmizer {
     private final LemmaCRUDService lemmaCRUDService;
     private final SiteCRUDService siteCRUDService;
     private final IndexCRUDService indexCRUDService;
+    LuceneMorphology luceneMorphologyRU = new RussianLuceneMorphology();
+    LuceneMorphology luceneMorphologyEN = new EnglishLuceneMorphology();
     private static final String[] particleNames =
             new String[]{"МЕЖД", "ПРЕДЛ", "СОЮЗ", "CONJ", "ARTICLE", "ADJECTIVE", "PART", "ADVERB"};
+    private static final String[] redundantForms = {"ПРЕДЛ", "СОЮЗ", "МЕЖД", "ВВОДН", "ЧАСТ", "МС", "CONJ", "PART"};
 
-    public Lemmizer(LemmaCRUDService lemmaCRUDService, SiteCRUDService siteCRUDService, IndexCRUDService indexCRUDService) {
+    public Lemmizer(LemmaCRUDService lemmaCRUDService, SiteCRUDService siteCRUDService, IndexCRUDService indexCRUDService) throws IOException {
         this.lemmaCRUDService = lemmaCRUDService;
         this.siteCRUDService = siteCRUDService;
         this.indexCRUDService = indexCRUDService;
@@ -172,7 +172,7 @@ public class Lemmizer {
         List<String> cleanText = getTextAsList(text);
         return getNormalWords(cleanText);
     }
-
+    //Написать метод, который будет каждое слово из cleanText откатывать в исходную форму слова и сравнивать с исходной формой лемм, если совпало - выделить сниппет
     public List<String> getTextAsList(String text) throws IOException {
         String regex = "[^а-яА-Яa-zA-Z -]";
         String regex1 = "[ ]{2,}";
@@ -180,8 +180,8 @@ public class Lemmizer {
         String cleanText1 = cleanText0.replaceAll(regex1, " ");
         log.info("Clean text: " + cleanText1);
 
-        LuceneMorphology luceneMorphologyRU = new RussianLuceneMorphology();
-        LuceneMorphology luceneMorphologyEN = new EnglishLuceneMorphology();
+//        LuceneMorphology luceneMorphologyRU = new RussianLuceneMorphology();
+//        LuceneMorphology luceneMorphologyEN = new EnglishLuceneMorphology();
         List<String> words = new ArrayList<>();
         for (String word : cleanText1.split(" ")) {
             if (word == null || word.isEmpty()) continue;
@@ -232,9 +232,9 @@ public class Lemmizer {
         return word.matches("[a-zA-Z]+");
     }
 
-    public List<String> getNormalWords(List<String> words) throws IOException {//Макс: лучше переписать на регулярки
-        LuceneMorphology luceneMorphologyRU = new RussianLuceneMorphology();
-        LuceneMorphology luceneMorphologyEN = new EnglishLuceneMorphology();
+    public List<String> getNormalWords(List<String> words) throws IOException {
+//        LuceneMorphology luceneMorphologyRU = new RussianLuceneMorphology();
+//        LuceneMorphology luceneMorphologyEN = new EnglishLuceneMorphology();
         List<String> normalWords = new ArrayList<>();
         for (String word : words) {
             List<String> normalForms;
