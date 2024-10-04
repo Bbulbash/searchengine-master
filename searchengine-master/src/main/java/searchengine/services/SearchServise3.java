@@ -39,7 +39,7 @@ public class SearchServise3 {
     }
 
     public Map<String, Object> search(String query, String site, int offset, int limit)
-            throws IOException, InterruptedException {
+            throws IOException{
         Map<String, Object> response = new HashMap<>();
         Set<SearchResult> results = search(query, site);
 
@@ -176,7 +176,6 @@ public class SearchServise3 {
             searchResult.setUrl(page.getPath());
             searchResult.setTitle(getPageTitle(page));
             searchResult.setSnippet(findQueryInText(page.getContent(), query));
-            String snip = searchResult.getSnippet();
             searchResult.setRelevance(relevance);
             if (searchResult.getSnippet() == null) break;
 
