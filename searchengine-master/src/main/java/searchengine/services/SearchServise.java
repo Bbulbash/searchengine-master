@@ -161,9 +161,9 @@ public class SearchServise {
             String siteName = sitesList.getSites().stream()
                     .filter(it -> it.getUrl().equals(siteUrl)).toList().get(0).getName();
             SearchResult searchResult = new SearchResult();
-            searchResult.setUrl(siteUrl);
+            searchResult.setSite(siteUrl);
             searchResult.setSiteName(siteName);
-            searchResult.setUrl(page.getPath());
+            searchResult.setUri(page.getPath());
             searchResult.setTitle(getPageTitle(page));
             searchResult.setSnippet(findQueryInText(page.getContent(), query));
             searchResult.setRelevance(relevance);
