@@ -15,8 +15,6 @@ import searchengine.lemmizer.Lemmizer;
 
 import java.io.IOException;
 import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
@@ -49,20 +47,12 @@ public class SearchServise3 {
             return response;
         }
 
-        int total = results.size();
-        int endIndex = Math.min(offset + limit, total);
-        List<SearchResult> pagedResults = results.stream().toList().subList(offset, endIndex);
-        List<SearchResult> cleanPagedResults = new ArrayList<>();
-        for (SearchResult result : pagedResults) {
-            if (!result.getSnippet().equals("")) {
-                cleanPagedResults.add(result);
-            }
-        }
-        total = cleanPagedResults.size();
-
+        List<SearchResult> pagedResults = results.stream().toList();
+        int total = pagedResults.size();
+        List<SearchResult> listToReturn = pagedResults.subList(offset, Math.min(total,limit));
         response.put("result", true);
         response.put("count", total);
-        response.put("data", cleanPagedResults);
+        response.put("data", listToReturn);
 
         return response;
     }
@@ -108,7 +98,7 @@ public class SearchServise3 {
 
     }
 
-    private Set<PageDto> filterPagesByAllLemmas(Set<LemmaDto> lemmaDtos) throws IOException {
+    private Set<PageDto> filterPagesByAllLemmas(Set<LemmaDto> lemmaDtos){
         Iterator<LemmaDto> lemmaIterator = lemmaDtos.iterator();
         if (!lemmaIterator.hasNext()) {
             return Collections.emptySet();
@@ -201,7 +191,6 @@ public class SearchServise3 {
                     isFirst = true;
                     indexWord = text.indexOf(word);
                 }
-
             }
         }
         int snippetStart = Math.max(0, indexWord - 100);
