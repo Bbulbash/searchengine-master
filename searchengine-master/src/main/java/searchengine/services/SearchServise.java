@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
 
 @Service
 @Slf4j
-public class SearchServise3 {
+public class SearchServise {
     @Autowired
     private SitesList sitesList;
     private final PageCRUDService pageCRUDService;
@@ -28,7 +28,7 @@ public class SearchServise3 {
     private final IndexCRUDService indexCRUDService;
     private final LemmaCRUDService lemmaCRUDService;
 
-    public SearchServise3(PageCRUDService pageCRUDService, SiteCRUDService siteCRUDService, Lemmizer lemmizer, IndexCRUDService indexCRUDService, LemmaCRUDService lemmaCRUDService) {
+    public SearchServise(PageCRUDService pageCRUDService, SiteCRUDService siteCRUDService, Lemmizer lemmizer, IndexCRUDService indexCRUDService, LemmaCRUDService lemmaCRUDService) {
         this.pageCRUDService = pageCRUDService;
         this.siteCRUDService = siteCRUDService;
         this.lemmizer = lemmizer;

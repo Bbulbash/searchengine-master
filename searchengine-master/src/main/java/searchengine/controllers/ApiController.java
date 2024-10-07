@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.*;
 import searchengine.dto.statistics.StatisticsCollector;
 import searchengine.dto.statistics.StatisticsResponse;
 import searchengine.services.IndexingService;
-import searchengine.services.SearchServise3;
+import searchengine.services.SearchServise;
 
 import java.util.Map;
 
@@ -17,9 +17,9 @@ import java.util.Map;
 public class ApiController {
     private final IndexingService indexingService;
     private final StatisticsCollector statisticsCollector;
-    private final SearchServise3 searchServise3;
+    private final SearchServise searchServise3;
 
-    public ApiController(IndexingService indexingService, StatisticsCollector statisticsCollector, SearchServise3 searchServise3) {
+    public ApiController(IndexingService indexingService, StatisticsCollector statisticsCollector, SearchServise searchServise3) {
         this.indexingService = indexingService;
         this.statisticsCollector = statisticsCollector;
         this.searchServise3 = searchServise3;
