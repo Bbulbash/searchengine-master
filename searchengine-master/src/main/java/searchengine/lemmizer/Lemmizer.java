@@ -27,8 +27,6 @@ public class Lemmizer {
     LuceneMorphology luceneMorphologyEN = new EnglishLuceneMorphology();
     private static final String[] particleNames =
             new String[]{"МЕЖД", "ПРЕДЛ", "СОЮЗ", "CONJ", "ARTICLE", "ADJECTIVE", "PART", "ADVERB"};
-    private static final String[] redundantForms = {"ПРЕДЛ", "СОЮЗ", "МЕЖД", "ВВОДН", "ЧАСТ", "МС", "CONJ", "PART"};
-
     public Lemmizer(LemmaCRUDService lemmaCRUDService, SiteCRUDService siteCRUDService, IndexCRUDService indexCRUDService) throws IOException {
         this.lemmaCRUDService = lemmaCRUDService;
         this.siteCRUDService = siteCRUDService;
@@ -125,7 +123,7 @@ public class Lemmizer {
                     Thread.sleep(100);
                 } catch (InterruptedException e) {
                     log.error("Interrupted while waiting for lemma creation", e);
-                    Thread.currentThread().interrupt(); // восстанавливаем статус прерывания
+                    Thread.currentThread().interrupt();
                 }
             }
         }
@@ -172,7 +170,6 @@ public class Lemmizer {
         List<String> cleanText = getTextAsList(text);
         return getNormalWords(cleanText);
     }
-    //Написать метод, который будет каждое слово из cleanText откатывать в исходную форму слова и сравнивать с исходной формой лемм, если совпало - выделить сниппет
     public List<String> getTextAsList(String text) throws IOException {
         String regex = "[^а-яА-Яa-zA-Z -]";
         String regex1 = "[ ]{2,}";
@@ -180,8 +177,6 @@ public class Lemmizer {
         String cleanText1 = cleanText0.replaceAll(regex1, " ");
         log.info("Clean text: " + cleanText1);
 
-//        LuceneMorphology luceneMorphologyRU = new RussianLuceneMorphology();
-//        LuceneMorphology luceneMorphologyEN = new EnglishLuceneMorphology();
         List<String> words = new ArrayList<>();
         for (String word : cleanText1.split(" ")) {
             if (word == null || word.isEmpty()) continue;
@@ -232,9 +227,7 @@ public class Lemmizer {
         return word.matches("[a-zA-Z]+");
     }
 
-    public List<String> getNormalWords(List<String> words) throws IOException {
-//        LuceneMorphology luceneMorphologyRU = new RussianLuceneMorphology();
-//        LuceneMorphology luceneMorphologyEN = new EnglishLuceneMorphology();
+    public List<String> getNormalWords(List<String> words){
         List<String> normalWords = new ArrayList<>();
         for (String word : words) {
             List<String> normalForms;
