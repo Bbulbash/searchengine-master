@@ -152,7 +152,7 @@ public class PageCRUDService implements CRUDService<PageDto> {
     @Transactional
     public PageModel mapToModel(PageDto pageDto) {
         PageModel pageM = new PageModel();
-        SiteModel siteM = siteCRUDService.findByUrl(pageDto.getSite());
+        SiteModel siteM = siteCRUDService.findByUrl(pageDto.getSite().replaceAll("/$", ""));
         if (siteM == null) {
             log.error("SiteModel not found for URL: " + pageDto.getSite());
             throw new EntityNotFoundException("SiteModel not found for URL: " + pageDto.getSite());

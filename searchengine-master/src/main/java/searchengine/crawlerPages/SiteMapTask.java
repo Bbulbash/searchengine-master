@@ -69,7 +69,7 @@ public class SiteMapTask extends RecursiveTask<TaskResult> {
                 log.warn("url 1111" + url);
                 String pathFromRoot = normalizePath(urlAsURL.getPath());
                 log.info("Path from url " + pathFromRoot);
-                String rootUrl = urlAsURL.getProtocol() + "://" + urlAsURL.getHost() + "/";
+                String rootUrl = urlAsURL.getProtocol() + "://" + urlAsURL.getHost();
                 log.info("Root url " + rootUrl);
                 PageDto pageDto = new PageDto();
                 pageDto.setSite(rootUrl);

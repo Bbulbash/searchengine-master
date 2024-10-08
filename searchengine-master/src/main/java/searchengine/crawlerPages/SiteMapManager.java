@@ -73,7 +73,7 @@ public class SiteMapManager {
         return siteCRUDService.create(siteDto);
     }
 
-    private void updateSiteStatus(String url, TaskResult taskResult) throws Exception {
+    private void updateSiteStatus(String url, TaskResult taskResult){
         SiteModel model = siteCRUDService.findByUrl(url);
         Boolean success = taskResult.getSuccess();
         String errorMessage = taskResult.getErrorMessage();

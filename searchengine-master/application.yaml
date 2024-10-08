@@ -4,7 +4,7 @@ server:
 spring:
   datasource:
     username: root
-    password: PaSBM!@12PaSBM!@12
+    password:
     url: jdbc:mysql://localhost:3306/search_engine?useSSL=false&requireSSL=false&allowPublicKeyRetrieval=true
   main:
     allow-circular-references: true
@@ -21,7 +21,7 @@ spring:
 
 indexing-settings:
   sites:
-    - url: https://nikoartgallery.com/
+    - url: https://nikoartgallery.com
       name: Art
-    - url: https://ipfran.ru/
+    - url: https://ipfran.ru
       name: Ipfran
