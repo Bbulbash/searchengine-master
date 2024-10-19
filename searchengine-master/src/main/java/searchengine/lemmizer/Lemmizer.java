@@ -170,7 +170,7 @@ public class Lemmizer {
         List<String> cleanText = getTextAsList(text);
         return getNormalWords(cleanText);
     }
-    public List<String> getTextAsList(String text) throws IOException {
+    public List<String> getTextAsList(String text){
         String regex = "[^а-яА-Яa-zA-Z -]";
         String regex1 = "[ ]{2,}";
         String cleanText0 = text.replaceAll(regex, "");

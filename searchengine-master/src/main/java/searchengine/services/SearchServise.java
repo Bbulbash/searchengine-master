@@ -15,6 +15,8 @@ import searchengine.lemmizer.Lemmizer;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
@@ -37,7 +39,7 @@ public class SearchServise {
     }
 
     public Map<String, Object> search(String query, String site, int offset, int limit)
-            throws IOException{
+            throws IOException {
         Map<String, Object> response = new HashMap<>();
         Set<SearchResult> results = search(query, site);
 
@@ -49,7 +51,7 @@ public class SearchServise {
 
         List<SearchResult> pagedResults = results.stream().toList();
         int total = pagedResults.size();
-        List<SearchResult> listToReturn = pagedResults.subList(offset, Math.min(total,limit));
+        List<SearchResult> listToReturn = pagedResults.subList(offset, Math.min(total, offset + limit));
         response.put("result", true);
         response.put("count", total);
         response.put("data", listToReturn);
@@ -98,7 +100,7 @@ public class SearchServise {
 
     }
 
-    private Set<PageDto> filterPagesByAllLemmas(Set<LemmaDto> lemmaDtos){
+    private Set<PageDto> filterPagesByAllLemmas(Set<LemmaDto> lemmaDtos) {
         Iterator<LemmaDto> lemmaIterator = lemmaDtos.iterator();
         if (!lemmaIterator.hasNext()) {
             return Collections.emptySet();
@@ -175,23 +177,36 @@ public class SearchServise {
     }
 
     private String findQueryInText(String text, String query) throws IOException {
-        List<String> normalFormsText = lemmizer.getNormalWords(text);
-        List<String> normalQuery = lemmizer.getNormalWords(query);
-        List<String> commonElements = new ArrayList<>(normalFormsText);
-        commonElements.retainAll(normalQuery);
-        List<String> textAsList = lemmizer.getTextAsList(text);
-        boolean isFirst = false;
-        Integer indexWord = 0;
-        for (String word : textAsList) {
-            List<String> wordAsList = new ArrayList<>();
-            wordAsList.add(word);
-            if (commonElements.contains(lemmizer.getNormalWords(wordAsList).get(0))) {
-                text = text.replace(word, "<b>" + word + "</b>");
-                if (!isFirst) {
-                    isFirst = true;
-                    indexWord = text.indexOf(word);
+        List<String> normalQueryList = lemmizer.getNormalWords(query);
+        String[] textWords = text.split("\\s+");
+        StringBuilder result = new StringBuilder();
+
+        for (String word : textWords) {
+            List<String> normalizedWords = lemmizer.getNormalWords(word);
+            for (String normalizedWord : normalizedWords) {
+                if (normalQueryList.contains(normalizedWord)) {
+                    System.out.println("Contains ");
+                    result.append("<b>").append(word).append("</b>");
+                } else {
+                    result.append(word);
                 }
             }
+            result.append(" ");
+            System.out.println(result);
+        }
+        return getSnippet(result.toString().trim());
+    }
+
+    private String getSnippet(String text) {
+        Integer indexWord = 0;
+        String patternString = "<b>(.*?)</b>";
+        Pattern pattern = Pattern.compile(patternString, Pattern.CASE_INSENSITIVE);
+        Matcher matcher = pattern.matcher(text);
+
+        while  (matcher.find()) {
+            String word = matcher.group(1);
+            indexWord = text.indexOf("<b>" + word + "</b>");
+            break;
         }
         int snippetStart = Math.max(0, indexWord - 100);
         int snippetEnd = Math.min(text.length(), indexWord + 100);
@@ -201,8 +216,8 @@ public class SearchServise {
             snippet = "..." + snippet + "...";
         }
         return snippet;
-
     }
+
 
     private Map<String, Integer> getUrlPageCountMap() {
         List<Site> sites = sitesList.getSites();
